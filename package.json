@@ -22,6 +22,8 @@
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.2",
+    "@bufbuild/buf": "^1.57.0",
+    "@bufbuild/protobuf": "^2.7.0",
     "@cosmjs/crypto": "^0.36.0",
     "@cosmjs/proto-signing": "^0.36.0",
     "@cosmjs/stargate": "^0.36.0",
