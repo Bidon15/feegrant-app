@@ -11,12 +11,20 @@ export const env = createEnv({
       process.env.NODE_ENV === "production"
         ? z.string()
         : z.string().optional(),
-    AUTH_DISCORD_ID: z.string(),
-    AUTH_DISCORD_SECRET: z.string(),
     DATABASE_URL: z.string().url(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
+    
+    // GitHub OAuth
+    GITHUB_ID: z.string(),
+    GITHUB_SECRET: z.string(),
+    
+    // Celestia-specific environment variables
+    QUICKNODE_RPC: z.string().url(),
+    MOCHA_RECOVERY_WALLET: z.string(),
+    CELESTIA_CHAIN_ID: z.string().default("mocha-4"),
+    COMMIT_URL: z.string().url(),
   },
 
   /**
@@ -25,7 +33,7 @@ export const env = createEnv({
    * `NEXT_PUBLIC_`.
    */
   client: {
-    // NEXT_PUBLIC_CLIENTVAR: z.string(),
+    NEXT_PUBLIC_PARA_API_KEY: z.string(),
   },
 
   /**
@@ -34,10 +42,15 @@ export const env = createEnv({
    */
   runtimeEnv: {
     AUTH_SECRET: process.env.AUTH_SECRET,
-    AUTH_DISCORD_ID: process.env.AUTH_DISCORD_ID,
-    AUTH_DISCORD_SECRET: process.env.AUTH_DISCORD_SECRET,
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
+    GITHUB_ID: process.env.GITHUB_ID,
+    GITHUB_SECRET: process.env.GITHUB_SECRET,
+    QUICKNODE_RPC: process.env.QUICKNODE_RPC,
+    MOCHA_RECOVERY_WALLET: process.env.MOCHA_RECOVERY_WALLET,
+    CELESTIA_CHAIN_ID: process.env.CELESTIA_CHAIN_ID,
+    COMMIT_URL: process.env.COMMIT_URL,
+    NEXT_PUBLIC_PARA_API_KEY: process.env.NEXT_PUBLIC_PARA_API_KEY,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
