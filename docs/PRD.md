@@ -568,3 +568,170 @@ Already included via cosmjs-types
 #### Build instructions
 - Use ts-proto (or equivalent) to generate TS bindings.
 - Package them under "celestia-proto" namespace for imports:
+
+
+---
+
+## Using Generated Protos in Code (MVP)
+
+### Imports
+
+#### Generated files live under src/generated/celestia/blob/v1/:
+
+```ts
+import { MsgPayForBlobs } from "@/generated/celestia/blob/v1/tx";
+import { Any } from "cosmjs-types/google/protobuf/any";
+import { MsgExec } from "cosmjs-types/cosmos/authz/v1beta1/tx";
+import { coins } from "@cosmjs/stargate";
+```
+
+### Build & Broadcast MsgExec(Any(PFB))
+
+We pre-encode the Celestia PFB with our generated TS binding, wrap it in Any, then put that inside MsgExec. CosmJS already knows MsgExec, so no custom registry is required.
+
+```ts
+// src/server/celestia/buildAndBroadcastExecPfb.ts
+import { Any } from "cosmjs-types/google/protobuf/any";
+import { MsgExec } from "cosmjs-types/cosmos/authz/v1beta1/tx";
+import { coins } from "@cosmjs/stargate";
+import { MsgPayForBlobs } from "@/generated/celestia/blob/v1/tx";
+import { getCelestiaClient } from "./client";
+
+function assert29(ns: Uint8Array) {
+  if (ns.length !== 29) throw new Error("namespace must be 29 bytes (ADR-015)");
+}
+
+export async function buildAndBroadcastExecPfb(opts: {
+  backendAddr: string;            // fee payer & outer signer
+  devAddr: string;                // logical inner signer in PFB
+  namespaceHex: string;           // 58 hex chars → 29 bytes
+  blob: Uint8Array;               // ≤ 2 MB
+  commitment: Uint8Array;         // from sidecar for (namespace, blob)
+  shareVersion?: number;          // default 0
+  fee?: { amount: string; denom: string; gas: string };
+}) {
+  const {
+    backendAddr,
+    devAddr,
+    namespaceHex,
+    blob,
+    commitment,
+    shareVersion = 0,
+    fee = { amount: "3000", denom: "utia", gas: "400000" },
+  } = opts;
+
+  const ns = Buffer.from(namespaceHex, "hex");
+  assert29(ns);
+
+  // Inner: MsgPayForBlobs
+  const pfb = MsgPayForBlobs.fromPartial({
+    signer: devAddr,
+    namespaces: [ns],
+    blobSizes: [blob.length],
+    shareCommitments: [commitment],
+    shareVersions: [shareVersion],
+  });
+
+  const pfbAny: Any = {
+    typeUrl: "/celestia.blob.v1.MsgPayForBlobs",
+    value: MsgPayForBlobs.encode(pfb).finish(),
+  };
+
+  // Outer: MsgExec (signed & fee-paid by backend)
+  const exec = MsgExec.fromPartial({
+    grantee: backendAddr,
+    msgs: [pfbAny],
+  });
+
+  const execAny: Any = {
+    typeUrl: "/cosmos.authz.v1beta1.MsgExec",
+    value: MsgExec.encode(exec).finish(),
+  };
+
+  const { client } = await getCelestiaClient();
+  const res = await client.signAndBroadcast(
+    backendAddr,
+    [execAny],
+    { amount: coins(fee.amount, fee.denom), gas: fee.gas },
+    ""
+  );
+
+  if (res.code && res.code !== 0) {
+    throw new Error(`PFB broadcast failed: code=${res.code} log=${res.rawLog}`);
+  }
+  return res.transactionHash!;
+}
+```
+
+### Commitment Sidecar (call before building PFB)
+
+```ts
+// src/server/celestia/commitments.ts
+const COMMIT_URL = "https://commitmentsforlangsng7xratc-container-jovial-wing.functions.fnc.fr-par.scw.cloud/compute-commitment";
+
+export async function getCommitmentFromSidecar(namespaceHex: string, blob: Uint8Array) {
+  const r = await fetch(COMMIT_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      namespace: namespaceHex,
+      blobBase64: Buffer.from(blob).toString("base64"),
+      shareVersion: 0,
+      namespaceIsHex: true,
+    }),
+  });
+  if (!r.ok) throw new Error(`commitment API failed: ${r.status} ${await r.text()}`);
+  const { commitmentBase64 } = await r.json();
+  return Buffer.from(commitmentBase64, "base64");
+}
+```
+
+### Worker Integration (pfb.exec)
+
+```ts
+// src/server/jobs/workers.ts (excerpt)
+import { prisma } from "@/server/db";
+import { getCelestiaClient } from "@/server/celestia/client";
+import { getCommitmentFromSidecar } from "@/server/celestia/commitments";
+import { buildAndBroadcastExecPfb } from "@/server/celestia/buildAndBroadcastExecPfb";
+
+export async function execPfb({ blobId }: { blobId: string }) {
+  const row = await prisma.blobPayload.findUnique({ where: { id: blobId } });
+  if (!row) return { txHash: "blob-missing" };
+
+  const nsHex = row.namespace;                 // 58-hex string
+  const blob = Buffer.from(row.blob);          // bytea → Buffer
+
+  // 1) fetch commitment from sidecar
+  const commitment = await getCommitmentFromSidecar(nsHex, blob);
+
+  // 2) build & broadcast MsgExec(PFB)
+  const { address: backendAddr } = await getCelestiaClient();
+  const txHash = await buildAndBroadcastExecPfb({
+    backendAddr,
+    devAddr: row.devAddr,
+    namespaceHex: nsHex,
+    blob,
+    commitment,
+    shareVersion: 0,
+  });
+
+  // 3) persist + cleanup
+  await prisma.$transaction([
+    prisma.blobTx.create({
+      data: { userId: row.userId, devAddr: row.devAddr, namespace: nsHex, txHash },
+    }),
+    prisma.blobPayload.delete({ where: { id: row.id } }),
+  ]);
+
+  return { txHash };
+}
+```
+
+### Notes
+- No custom protobuf registry required because we pre-encode PFB and wrap in Any, then use MsgExec (known to CosmJS).
+- Namespaces must be exactly 29 bytes; use the namespace router to generate them.
+- Blob size ≤ 2 MB; enforce server-side; next.config.js body limit set to 3 MB.
+- Authz: ensure the dev granted GenericAuthorization{ "/celestia.blob.v1.MsgPayForBlobs" } to backendAddr before calling execPfb.
+
+---
