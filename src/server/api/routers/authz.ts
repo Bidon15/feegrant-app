@@ -24,21 +24,73 @@ export const authzRouter = createTRPCRouter({
         });
       }
 
-      if (userAddress.isDusted) {
+      if (userAddress.isDusted && userAddress.hasFeeGrant) {
         return { 
           success: true, 
-          message: "Address already dusted",
-          txHash: "already-dusted",
+          message: "already dusted and fee granted",
+          txHash: "already-complete",
         };
       }
 
       // Execute dust job directly
-      const result = await executeJob("dust.send", { address });
+      const dustResult = await executeJob("dust.send", { address });
+
+      // Also grant fee allowance so user can pay for authz transactions
+      const feeGrantResult = await executeJob("feegrant.grant", { address });
+
+      return {
+        success: true,
+        txHash: (dustResult as any).txHash,
+        feeGrantTxHash: (feeGrantResult as any).txHash,
+        message: "Dust and fee grant completed",
+      };
+    }),
+
+  grantFeeAllowance: protectedProcedure
+    .input(z.object({ address: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const { address } = input;
+
+      // Validate that the address is a valid Celestia address
+      console.log(`🔍 Validating address: "${address}" (length: ${address.length}, starts with celestia1: ${address.startsWith("celestia1")})`);
+      
+      if (!address.startsWith("celestia1") || address.length < 39 || address.length > 50) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Invalid Celestia address format. Address: "${address}" (length: ${address.length}, starts with celestia1: ${address.startsWith("celestia1")}). Address must start with 'celestia1' and be between 39-50 characters long.`,
+        });
+      }
+
+      // Check if address belongs to user
+      const userAddress = await ctx.db.address.findUnique({
+        where: { 
+          userId: ctx.session.user.id,
+          bech32: address,
+        },
+      });
+
+      if (!userAddress) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Address not found or not bound to user.",
+        });
+      }
+
+      if (userAddress.hasFeeGrant) {
+        return { 
+          success: true, 
+          message: "Fee allowance already granted",
+          txHash: "already-granted",
+        };
+      }
+
+      // Execute feegrant job directly
+      const result = await executeJob("feegrant.grant", { address });
 
       return {
         success: true,
         txHash: (result as any).txHash,
-        message: "Dust job completed",
+        message: "Fee allowance granted successfully",
       };
     }),
 

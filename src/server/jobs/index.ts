@@ -1,4 +1,5 @@
 import { sendDust, broadcastAuthz, execPfb, cleanupExpiredBlobs } from "./workers";
+import { grantFeeAllowance } from "./feegrant";
 
 // Direct job execution without pg-boss
 export async function executeJob(jobName: string, data: any) {
@@ -7,6 +8,8 @@ export async function executeJob(jobName: string, data: any) {
   switch (jobName) {
     case "dust.send":
       return await sendDust(data.address);
+    case "feegrant.grant":
+      return await grantFeeAllowance(data.address);
     case "authz.broadcast":
       return await broadcastAuthz(data.signedTxBase64, data.address);
     case "pfb.exec":

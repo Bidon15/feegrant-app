@@ -7,6 +7,7 @@ import { WalletSetup } from "~/app/_components/wallet-setup";
 import { BlobSubmit } from "~/app/_components/blob-submit";
 import { BlobHistory } from "~/app/_components/blob-history";
 import { GitHubSignInButton } from "~/app/_components/github-signin-popup";
+import { ParaWalletStatus } from "~/app/_components/para-wallet-status";
 
 export default async function Home() {
   const session = await auth();
@@ -30,14 +31,17 @@ export default async function Home() {
               
               <div className="flex flex-col items-center gap-4">
                 {session ? (
-                  <div className="flex items-center gap-4">
-                    <span className="text-lg">Welcome, {session.user?.name}!</span>
-                    <Link
-                      href="/api/auth/signout"
-                      className="px-4 py-2 bg-white/20 rounded-lg hover:bg-white/30 transition"
-                    >
-                      Sign out
-                    </Link>
+                  <div className="flex items-center justify-between w-full max-w-4xl">
+                    <div className="flex items-center gap-4">
+                      <span className="text-lg">Welcome, {session.user?.name}!</span>
+                      <Link
+                        href="/api/auth/signout"
+                        className="px-4 py-2 bg-white/20 rounded-lg hover:bg-white/30 transition"
+                      >
+                        Sign out
+                      </Link>
+                    </div>
+                    <ParaWalletStatus />
                   </div>
                 ) : (
                   <div className="text-center">

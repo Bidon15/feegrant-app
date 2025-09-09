@@ -1,6 +1,7 @@
 import { userRouter } from "~/server/api/routers/user";
 import { authzRouter } from "~/server/api/routers/authz";
 import { blobRouter } from "~/server/api/routers/blob";
+import { accountRouter } from "~/server/api/routers/account";
 import { namespaceRouter } from "~/server/api/routers/namespace";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
@@ -13,6 +14,7 @@ export const appRouter = createTRPCRouter({
   user: userRouter,
   authz: authzRouter,
   blob: blobRouter,
+  account: accountRouter,
   namespace: namespaceRouter,
 });
 

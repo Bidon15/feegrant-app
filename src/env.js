@@ -34,6 +34,7 @@ export const env = createEnv({
    */
   client: {
     NEXT_PUBLIC_PARA_API_KEY: z.string(),
+    NEXT_PUBLIC_RPC_ENDPOINT: z.string().url(),
   },
 
   /**
@@ -51,6 +52,7 @@ export const env = createEnv({
     CELESTIA_CHAIN_ID: process.env.CELESTIA_CHAIN_ID,
     COMMIT_URL: process.env.COMMIT_URL,
     NEXT_PUBLIC_PARA_API_KEY: process.env.NEXT_PUBLIC_PARA_API_KEY,
+    NEXT_PUBLIC_RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_ENDPOINT,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

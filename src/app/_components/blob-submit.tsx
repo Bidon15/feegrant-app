@@ -36,6 +36,12 @@ export function BlobSubmit() {
     setNamespace(newNamespace);
   };
 
+  const generateNamespaceFromText = async (text: string): Promise<string> => {
+    // Call backend API to generate namespace from text
+    const result = await utils.namespace.fromName.fetch({ name: text });
+    return result.namespace;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -44,14 +50,23 @@ export function BlobSubmit() {
       return;
     }
 
-    if (!namespace.trim()) {
-      setError("Please generate or enter a namespace");
-      return;
-    }
-
-    if (namespace.length !== 58) {
-      setError("Namespace must be exactly 58 characters (29 bytes in hex)");
-      return;
+    let finalNamespace = namespace.trim();
+    
+    // If namespace is empty or not 58 chars, generate from text or use random
+    if (!finalNamespace || finalNamespace.length !== 58) {
+      if (finalNamespace && finalNamespace.length > 0) {
+        // Generate namespace from the entered text
+        finalNamespace = await generateNamespaceFromText(finalNamespace);
+        console.log(`Generated namespace from "${namespace}": ${finalNamespace}`);
+      } else {
+        // Generate random namespace if empty
+        const randomHex = Array.from({ length: 10 }, () => 
+          Math.floor(Math.random() * 256).toString(16).padStart(2, '0')
+        ).join('');
+        finalNamespace = '00' + '0'.repeat(36) + randomHex;
+        console.log(`Generated random namespace: ${finalNamespace}`);
+      }
+      setNamespace(finalNamespace);
     }
 
     if (new Blob([blobData]).size > 2 * 1024 * 1024) {
@@ -68,7 +83,7 @@ export function BlobSubmit() {
       const blobBase64 = Buffer.from(blobData, 'utf-8').toString('base64');
       
       await submitBlobMutation.mutateAsync({
-        namespace,
+        namespace: finalNamespace,
         blobBase64,
       });
     } catch (err) {

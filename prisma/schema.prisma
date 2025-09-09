@@ -58,15 +58,20 @@ model User {
 }
 
 model Address {
-    id              String   @id @default(cuid())
-    userId          String   @unique
-    bech32          String   @unique
-    isDusted        Boolean  @default(false)
-    hasAuthzGranted Boolean  @default(false)
-    revoked         Boolean  @default(false)
-    createdAt       DateTime @default(now())
-    updatedAt       DateTime @updatedAt
-    user            User     @relation(fields: [userId], references: [id])
+    id                     String   @id @default(cuid())
+    userId                 String   @unique
+    createdAt              DateTime @default(now())
+    updatedAt              DateTime @updatedAt
+    isDusted               Boolean  @default(false)
+    hasAuthzGranted        Boolean  @default(false)
+    revoked                Boolean  @default(false)
+    bech32                 String   @unique
+    hasFeeGrant            Boolean  @default(false)
+    feeAllowanceRemaining  String?  // Amount in utia, null if no allowance
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([userId])
 }
 
 model UsageCounter {
