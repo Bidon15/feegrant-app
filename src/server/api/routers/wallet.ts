@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
-import { executeJob } from "~/server/jobs";
+import { executeDustJob, executeFeegrantJob } from "~/server/jobs";
 
 export const walletRouter = createTRPCRouter({
   dust: protectedProcedure
@@ -33,15 +33,15 @@ export const walletRouter = createTRPCRouter({
       }
 
       // Execute dust job directly
-      const dustResult = await executeJob("dust.send", { address });
+      const dustResult = await executeDustJob(address);
 
-      // Also grant fee allowance so user can pay for authz transactions
-      const feeGrantResult = await executeJob("feegrant.grant", { address });
+      // Also grant fee allowance so user can pay for transactions
+      const feeGrantResult = await executeFeegrantJob(address);
 
       return {
         success: true,
-        txHash: (dustResult as any).txHash,
-        feeGrantTxHash: (feeGrantResult as any).txHash,
+        txHash: dustResult.txHash,
+        feeGrantTxHash: feeGrantResult.txHash,
         message: "Dust and fee grant completed",
       };
     }),
@@ -85,11 +85,11 @@ export const walletRouter = createTRPCRouter({
       }
 
       // Execute feegrant job directly
-      const result = await executeJob("feegrant.grant", { address });
+      const result = await executeFeegrantJob(address);
 
       return {
         success: true,
-        txHash: (result as any).txHash,
+        txHash: result.txHash,
         message: "Fee allowance granted successfully",
       };
     }),

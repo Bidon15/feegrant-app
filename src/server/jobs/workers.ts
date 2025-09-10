@@ -1,7 +1,7 @@
 import { db } from "~/server/db";
 import { getCelestiaClient } from "~/server/celestia/client";
 
-export async function sendDust(address: string, jobId?: string) {
+export async function sendDust(address: string) {
   const addr = await db.address.findUnique({ where: { bech32: address } });
   if (!addr || addr.isDusted) return { txHash: "already-dusted" };
 
@@ -29,18 +29,6 @@ export async function sendDust(address: string, jobId?: string) {
     where: { bech32: address }, 
     data: { isDusted: true } 
   });
-
-  // Log the job completion
-  if (jobId) {
-    await db.jobLog.create({
-      data: {
-        jobName: "dust.send",
-        payload: { address },
-        status: "completed",
-        txHash: res.transactionHash,
-      },
-    });
-  }
 
   return { txHash: res.transactionHash };
 }

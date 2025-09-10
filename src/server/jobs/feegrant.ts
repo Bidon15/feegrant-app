@@ -4,16 +4,16 @@ import { MsgGrantAllowance } from "cosmjs-types/cosmos/feegrant/v1beta1/tx";
 import { BasicAllowance, AllowedMsgAllowance } from "cosmjs-types/cosmos/feegrant/v1beta1/feegrant";
 import { Any } from "cosmjs-types/google/protobuf/any";
 
-export async function grantFeeAllowance(granteeAddress: string, jobId?: string) {
+export async function grantFeeAllowance(address: string) {
   const { client, address: backendAddr } = await getCelestiaClient();
   
-  console.log(`🔍 Granting fee allowance from ${backendAddr} to ${granteeAddress}`);
+  console.log(`🔍 Granting fee allowance from ${backendAddr} to ${address}`);
   
   // Validate addresses are not empty
   if (!backendAddr) {
     throw new Error("Backend address is empty");
   }
-  if (!granteeAddress) {
+  if (!address) {
     throw new Error("Grantee address is empty");
   }
   
@@ -41,7 +41,7 @@ export async function grantFeeAllowance(granteeAddress: string, jobId?: string) 
   
   const msgGrantAllowance = MsgGrantAllowance.fromPartial({
     granter: backendAddr,
-    grantee: granteeAddress,
+    grantee: address,
     allowance: allowanceAny,
   });
 
@@ -55,35 +55,24 @@ export async function grantFeeAllowance(granteeAddress: string, jobId?: string) 
     console.log(`🔍 Simulating transaction to check for existing allowance...`);
     await client.simulate(backendAddr, [msgGrantAllowanceEncodeObject], "Grant fee allowance simulation");
     console.log(`✅ Simulation successful, proceeding with transaction`);
-  } catch (simError: any) {
-    if (simError.message?.includes("fee allowance already exists")) {
+  } catch (simError: unknown) {
+    if (simError instanceof Error && simError.message?.includes("fee allowance already exists")) {
       console.log(`✅ Fee allowance already exists, updating database and returning`);
       
       // Update database to reflect existing allowance
       await db.address.update({
-        where: { bech32: granteeAddress },
+        where: { bech32: address },
         data: { 
           hasFeeGrant: true,
           feeAllowanceRemaining: "1000000", // Assume 1 TIA remaining
         },
       });
       
-      // Log the job completion
-      if (jobId) {
-        await db.jobLog.create({
-          data: {
-            jobName: "feegrant.grant",
-            payload: { granteeAddress },
-            status: "completed",
-            txHash: "existing_allowance",
-          },
-        });
-      }
       
       return { txHash: "existing_allowance" };
     } else {
       console.error(`❌ Simulation failed with unexpected error:`, simError);
-      throw new Error(`Transaction simulation failed: ${simError}`);
+      throw new Error(`Transaction simulation failed: ${simError instanceof Error ? simError.message : String(simError)}`);
     }
   }
 
@@ -111,24 +100,13 @@ export async function grantFeeAllowance(granteeAddress: string, jobId?: string) 
   
   // Update database to track fee grant (use actual amount granted)
   await db.address.update({
-    where: { bech32: granteeAddress },
+    where: { bech32: address },
     data: { 
       hasFeeGrant: true,
       feeAllowanceRemaining: "1000000", // 1 TIA in utia (matching our grant amount)
     },
   });
   
-  // Log the job completion
-  if (jobId) {
-    await db.jobLog.create({
-      data: {
-        jobName: "feegrant.grant",
-        payload: { granteeAddress },
-        status: "completed",
-        txHash: res.transactionHash,
-      },
-    });
-  }
   
   return { txHash: res.transactionHash };
 }

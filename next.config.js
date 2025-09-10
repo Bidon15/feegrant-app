@@ -6,7 +6,7 @@ await import("./src/env.js");
 
 /** @type {import("next").NextConfig} */
 const config = {
-  serverExternalPackages: ["pg", "pg-boss"],
+  serverExternalPackages: ["pg"],
 };
 
 export default config;
