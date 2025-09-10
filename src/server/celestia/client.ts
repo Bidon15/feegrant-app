@@ -3,7 +3,6 @@ import { SigningStargateClient, GasPrice } from "@cosmjs/stargate";
 import { Registry } from "@cosmjs/proto-signing";
 import { defaultRegistryTypes } from "@cosmjs/stargate";
 import { MsgGrantAllowance, MsgRevokeAllowance } from "cosmjs-types/cosmos/feegrant/v1beta1/tx";
-import { MsgGrant, MsgRevoke, MsgExec } from "cosmjs-types/cosmos/authz/v1beta1/tx";
 import { env } from "~/env";
 
 let clientCache: {
@@ -38,17 +37,14 @@ export async function getCelestiaClient() {
 
   console.log(`🔍 Backend wallet address: ${account.address}`);
 
-  // Create registry with feegrant and authz message types
+  // Create registry with feegrant and celestia message types
   const registry = new Registry([
     ...defaultRegistryTypes,
     ["/cosmos.feegrant.v1beta1.MsgGrantAllowance", MsgGrantAllowance],
     ["/cosmos.feegrant.v1beta1.MsgRevokeAllowance", MsgRevokeAllowance],
-    ["/cosmos.authz.v1beta1.MsgGrant", MsgGrant],
-    ["/cosmos.authz.v1beta1.MsgRevoke", MsgRevoke],
-    ["/cosmos.authz.v1beta1.MsgExec", MsgExec],
   ]);
 
-  console.log(`🔍 Registry created with feegrant and authz message types`);
+  console.log(`🔍 Registry created with feegrant and celestia message types`);
 
   // Connect to Mocha testnet
   const client = await SigningStargateClient.connectWithSigner(

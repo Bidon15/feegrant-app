@@ -70,7 +70,6 @@ export function ParaConnect() {
             <div className="mt-2 text-sm text-green-700">
               <p>Address: {user.address.bech32}</p>
               <p>Dusted: {user.address.isDusted ? "Yes" : "No"}</p>
-              <p>Authz Granted: {user.address.hasAuthzGranted ? "Yes" : "No"}</p>
             </div>
           </div>
         </div>

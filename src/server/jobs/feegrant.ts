@@ -29,9 +29,7 @@ export async function grantFeeAllowance(granteeAddress: string, jobId?: string) 
       value: BasicAllowance.encode(basicAllowance).finish(),
     }),
     allowedMessages: [
-      "/cosmos.authz.v1beta1.MsgGrant",
-      "/cosmos.authz.v1beta1.MsgRevoke", 
-      "/cosmos.authz.v1beta1.MsgExec",
+      "/cosmos.bank.v1beta1.MsgSend", // Allow basic send transactions
       "/celestia.blob.v1.MsgPayForBlobs", // Also allow PFB messages
     ],
   });
@@ -101,7 +99,7 @@ export async function grantFeeAllowance(granteeAddress: string, jobId?: string) 
     backendAddr,
     [msgGrantAllowanceEncodeObject],
     fee,
-    "Grant fee allowance for authz transactions"
+    "Grant fee allowance for transactions"
   );
   
   console.log(`✅ Transaction broadcast result: code=${res.code}, hash=${res.transactionHash}`);

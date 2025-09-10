@@ -1,31 +1,27 @@
 import "~/styles/globals.css";
-
 import { type Metadata } from "next";
-import { Geist } from "next/font/google";
-
 import { TRPCReactProvider } from "~/trpc/react";
 import { Providers } from "~/app/_components/providers";
 
 export const metadata: Metadata = {
-  title: "Celestia Blob Demo",
-  description: "Submit data blobs to Celestia Mocha testnet using Para wallet",
+  title: "Para Demo",
+  description: "Celestia feegrant and dusting demo",
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 
-const geist = Geist({
-  subsets: ["latin"],
-  variable: "--font-geist-sans",
-});
-
 export default function RootLayout({
   children,
-}: Readonly<{ children: React.ReactNode }>) {
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
-    <html lang="en" className={`${geist.variable}`}>
+    <html lang="en">
       <body>
-        <Providers>
-          <TRPCReactProvider>{children}</TRPCReactProvider>
-        </Providers>
+        <TRPCReactProvider>
+          <Providers>
+            {children}
+          </Providers>
+        </TRPCReactProvider>
       </body>
     </html>
   );

@@ -4,8 +4,6 @@ import { auth } from "~/server/auth";
 import { api, HydrateClient } from "~/trpc/server";
 import { WalletConnect } from "~/app/_components/wallet-connect";
 import { WalletSetup } from "~/app/_components/wallet-setup";
-import { BlobSubmit } from "~/app/_components/blob-submit";
-import { BlobHistory } from "~/app/_components/blob-history";
 import { GitHubSignInButton } from "~/app/_components/github-signin-popup";
 import { ParaWalletStatus } from "~/app/_components/para-wallet-status";
 
@@ -64,12 +62,6 @@ export default async function Home() {
               
               {/* Wallet Setup (Dusting & Authz) */}
               <WalletSetup />
-              
-              {/* Blob Submission */}
-              <BlobSubmit />
-              
-              {/* Blob History */}
-              <BlobHistory />
             </div>
           ) : (
             <div className="max-w-2xl mx-auto text-center py-16">
@@ -106,17 +98,7 @@ export default async function Home() {
                       <h3 className="font-medium text-gray-900">Get Setup</h3>
                       <p className="text-gray-600">Receive initial TIA tokens and grant authorization</p>
                     </div>
-                  </div>
-                  
-                  <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-medium">
-                      4
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-gray-900">Submit Blobs</h3>
-                      <p className="text-gray-600">Upload data blobs (up to 2MB, 3 per day) to Celestia</p>
-                    </div>
-                  </div>
+                  </div>  
                 </div>
                 
                 <div className="mt-8 p-4 bg-blue-50 rounded-lg">
