@@ -1,5 +1,8 @@
 # PRD: Celestia Mocha Demo — Authz Blob Submission (v3, tRPC-only)
 
+## Background
+This is an initial idea that I have had in my head, but due to authz not supporting PFBs, I decided to not implement it. As well as the queue for workers as this is not relevant for just feegrants.
+
 ## Goal
 Provide developers with a simple way to:
 1. Create a Celestia wallet (via Para),
