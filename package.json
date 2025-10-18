@@ -41,6 +41,7 @@
     "cosmjs-types": "^0.10.1",
     "cuid2": "^2.2.2",
     "dotenv": "^16.4.7",
+    "@enidon-ai/sdk": "file:../sdk",
     "next": "^15.2.3",
     "next-auth": "5.0.0-beta.25",
     "react": "^19.0.0",

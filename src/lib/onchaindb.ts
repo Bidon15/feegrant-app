@@ -1,16 +1,52 @@
+/**
+ * OnChainDB Client for feegrant-app
+ *
+ * Uses the local OnChainDB SDK from ../../../sdk
+ * Provides a simple interface to interact with OnChainDB,
+ * replacing Prisma for blockchain-backed data storage.
+ */
+
+import { createClient, OnChainDBClient, DatabaseManager } from '../../../sdk';
 import { env } from "~/env";
 import { cuid } from "cuid2";
 
-const API_URL = env.ONCHAINDB_API_URL;
-const APP_ID = env.ONCHAINDB_APP_ID;
-const BROKER_ADDRESS = env.ONCHAINDB_BROKER_ADDRESS;
+// SDK Client instance
+let client: OnChainDBClient;
+let dbManager: DatabaseManager;
 
-export interface WriteOptions {
-  paymentTxHash: string;
-  userAddress: string;
-  amountUtia: number;
+/**
+ * Initialize the OnChainDB client
+ */
+export function initializeClient() {
+  if (!client) {
+    client = createClient({
+      endpoint: env.ONCHAINDB_API_URL,
+      appId: env.ONCHAINDB_APP_ID,
+      apiKey: env.ONCHAINDB_APP_HASH,
+    });
+
+    dbManager = client.database(env.ONCHAINDB_APP_ID);
+  }
+
+  return { client, dbManager };
 }
 
+// Auto-initialize on import
+initializeClient();
+
+/**
+ * Payment proof structure for write operations
+ */
+export interface PaymentProof {
+  payment_tx_hash: string;
+  user_address: string;
+  broker_address: string;
+  amount_utia: number;
+}
+
+/**
+ * Query options for finding documents
+ */
 export interface QueryOptions {
   limit?: number;
   offset?: number;
@@ -20,148 +56,135 @@ export interface QueryOptions {
   };
 }
 
-export interface WriteQuote {
-  base_celestia_cost: number;
-  broker_fee: number;
-  indexing_costs: Record<string, number>;
-  creator_premium?: {
-    premium_total: number;
-    premium_type: string;
-    premium_amount: number;
-    creator_revenue: number;
-    platform_revenue: number;
-  };
-  total_cost: number;
-}
-
-export interface TaskStatus {
-  ticket_id: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  message?: string;
-  tx_hash?: string;
-  block_height?: number;
-  error?: string;
-}
-
 /**
- * OnChainDB Client for feegrant-app
- *
- * Provides a simple interface to interact with OnChainDB,
- * replacing Prisma for blockchain-backed data storage.
+ * OnChainDB wrapper class with Prisma-like API
  */
 export class OnChainDB {
-  /**
-   * Query documents from a collection
-   */
-  async query<T>(
-    collection: string,
-    query: Record<string, any> = {},
-    options: QueryOptions = {}
-  ): Promise<T[]> {
-    const response = await fetch(`${API_URL}/api/apps/${APP_ID}/query`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        collection,
-        query,
-        limit: options.limit ?? 100,
-        offset: options.offset,
-        sort: options.sort,
-      }),
-    });
+  private client: OnChainDBClient;
+  private dbManager: DatabaseManager;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`OnChainDB query failed: ${response.statusText} - ${errorText}`);
-    }
-
-    const result = await response.json();
-    return (result.data || []) as T[];
+  constructor() {
+    const { client: c, dbManager: d } = initializeClient();
+    this.client = c;
+    this.dbManager = d;
   }
 
   /**
-   * Find a single document by query
+   * Find a single document by query (like Prisma's findUnique)
    */
   async findUnique<T>(
     collection: string,
-    query: Record<string, any>
+    where: Record<string, any>
   ): Promise<T | null> {
-    const results = await this.query<T>(collection, query, { limit: 1 });
-    return results[0] ?? null;
+    try {
+      // Build query with all where conditions
+      let queryBuilder = this.client.queryBuilder().collection(collection);
+
+      // Add each where condition
+      for (const [field, value] of Object.entries(where)) {
+        queryBuilder = queryBuilder.whereField(field).equals(value);
+      }
+
+      const result = await queryBuilder.selectAll().limit(1).execute();
+
+      if (!result.records || result.records.length === 0) {
+        return null;
+      }
+
+      return result.records[0] as T;
+    } catch (error) {
+      console.error(`OnChainDB findUnique error for ${collection}:`, error);
+      return null;
+    }
   }
 
   /**
-   * Find multiple documents by query
+   * Find multiple documents by query (like Prisma's findMany)
    */
   async findMany<T>(
     collection: string,
-    query: Record<string, any> = {},
+    where: Record<string, any> = {},
     options: QueryOptions = {}
   ): Promise<T[]> {
-    return this.query<T>(collection, query, options);
-  }
+    try {
+      let queryBuilder = this.client.queryBuilder().collection(collection);
 
-  /**
-   * Write documents to a collection
-   * Requires payment transaction from user
-   */
-  async write<T extends Record<string, any>>(
-    collection: string,
-    data: T[],
-    payment: WriteOptions
-  ): Promise<{ ticket_id: string; status: string }> {
-    const response = await fetch(`${API_URL}/api/apps/${APP_ID}/store`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        root: `${APP_ID}::${collection}`,
-        data,
-        payment_tx_hash: payment.paymentTxHash,
-        user_address: payment.userAddress,
-        broker_address: BROKER_ADDRESS,
-        amount_utia: payment.amountUtia,
-      }),
-    });
+      // Add where conditions
+      for (const [field, value] of Object.entries(where)) {
+        queryBuilder = queryBuilder.whereField(field).equals(value);
+      }
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`OnChainDB write failed: ${response.statusText} - ${errorText}`);
+      // Add limit
+      if (options.limit) {
+        queryBuilder = queryBuilder.limit(options.limit);
+      }
+
+      const result = await queryBuilder.selectAll().execute();
+
+      if (!result.records) {
+        return [];
+      }
+
+      // Apply sorting if specified
+      let records = result.records as T[];
+      if (options.sort) {
+        records = records.sort((a: any, b: any) => {
+          const aVal = a[options.sort!.field];
+          const bVal = b[options.sort!.field];
+
+          if (options.sort!.order === 'asc') {
+            return aVal > bVal ? 1 : -1;
+          } else {
+            return aVal < bVal ? 1 : -1;
+          }
+        });
+      }
+
+      return records;
+    } catch (error) {
+      console.error(`OnChainDB findMany error for ${collection}:`, error);
+      return [];
     }
-
-    return response.json();
   }
 
   /**
-   * Create a single document
+   * Create a new document (like Prisma's create)
    */
   async create<T extends Record<string, any>>(
     collection: string,
     data: Omit<T, 'id' | 'createdAt' | 'updatedAt'>,
-    payment: WriteOptions
+    paymentProof: PaymentProof
   ): Promise<T> {
     const document: any = {
-      id: this.generateId(),
+      id: cuid(),
       ...data,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
-    await this.write(collection, [document], payment);
+    await this.client.store({
+      collection,
+      data: [document],
+      payment_tx_hash: paymentProof.payment_tx_hash,
+      user_address: paymentProof.user_address,
+      broker_address: paymentProof.broker_address,
+      amount_utia: paymentProof.amount_utia,
+    });
+
     return document as T;
   }
 
   /**
-   * Update a document
-   * Note: OnChainDB is append-only, so this actually creates a new version
+   * Update a document (creates new version in OnChainDB)
    */
   async update<T extends Record<string, any>>(
     collection: string,
-    query: Record<string, any>,
+    where: Record<string, any>,
     data: Partial<T>,
-    payment: WriteOptions
+    paymentProof: PaymentProof
   ): Promise<T | null> {
     // Fetch current document
-    const current = await this.findUnique<T>(collection, query);
+    const current = await this.findUnique<T>(collection, where);
 
     if (!current) {
       return null;
@@ -174,7 +197,15 @@ export class OnChainDB {
       updatedAt: new Date().toISOString(),
     };
 
-    await this.write(collection, [updated], payment);
+    await this.client.store({
+      collection,
+      data: [updated],
+      payment_tx_hash: paymentProof.payment_tx_hash,
+      user_address: paymentProof.user_address,
+      broker_address: paymentProof.broker_address,
+      amount_utia: paymentProof.amount_utia,
+    });
+
     return updated as T;
   }
 
@@ -183,89 +214,94 @@ export class OnChainDB {
    */
   async upsert<T extends Record<string, any>>(
     collection: string,
-    query: Record<string, any>,
+    where: Record<string, any>,
     create: Omit<T, 'id' | 'createdAt' | 'updatedAt'>,
     update: Partial<T>,
-    payment: WriteOptions
+    paymentProof: PaymentProof
   ): Promise<T> {
-    const existing = await this.findUnique<T>(collection, query);
+    const existing = await this.findUnique<T>(collection, where);
 
     if (existing) {
-      return (await this.update<T>(collection, query, update, payment))!;
+      return (await this.update<T>(collection, where, update, paymentProof))!;
     } else {
-      return await this.create<T>(collection, create, payment);
+      return await this.create<T>(collection, create, paymentProof);
     }
   }
 
   /**
-   * Get a pricing quote for a write operation
+   * Delete a document (soft delete by marking as deleted)
    */
-  async getWriteQuote(
+  async delete<T extends Record<string, any>>(
     collection: string,
-    data: any[]
-  ): Promise<WriteQuote> {
+    where: Record<string, any>,
+    paymentProof: PaymentProof
+  ): Promise<boolean> {
+    const existing = await this.findUnique<T>(collection, where);
+
+    if (!existing) {
+      return false;
+    }
+
+    // Soft delete by marking
+    const deleted: any = {
+      ...existing,
+      deleted: true,
+      updatedAt: new Date().toISOString(),
+    };
+
+    await this.client.store({
+      collection,
+      data: [deleted],
+      payment_tx_hash: paymentProof.payment_tx_hash,
+      user_address: paymentProof.user_address,
+      broker_address: paymentProof.broker_address,
+      amount_utia: paymentProof.amount_utia,
+    });
+
+    return true;
+  }
+
+  /**
+   * Count documents in a collection
+   */
+  async count(collection: string, where: Record<string, any> = {}): Promise<number> {
+    const records = await this.findMany(collection, where);
+    return records.length;
+  }
+
+  /**
+   * Get pricing quote for a write operation
+   */
+  async getWriteQuote(collection: string, data: any[]): Promise<any> {
     // Estimate data size
     const dataString = JSON.stringify(data);
     const sizeKb = Math.ceil(dataString.length / 1024);
 
-    const response = await fetch(`${API_URL}/api/apps/pricing/quote`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        app_id: APP_ID,
-        operation_type: 'write',
-        size_kb: sizeKb,
-        monthly_volume_kb: sizeKb,
-        collection,
-      }),
-    });
+    try {
+      const response = await fetch(
+        `${env.ONCHAINDB_API_URL}/api/apps/pricing/quote`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            app_id: env.ONCHAINDB_APP_ID,
+            operation_type: 'write',
+            size_kb: sizeKb,
+            monthly_volume_kb: sizeKb,
+            collection,
+          }),
+        }
+      );
 
-    if (!response.ok) {
-      throw new Error(`Failed to get pricing quote: ${response.statusText}`);
-    }
-
-    return response.json();
-  }
-
-  /**
-   * Check the status of a write operation
-   */
-  async checkTaskStatus(ticketId: string): Promise<TaskStatus> {
-    const response = await fetch(`${API_URL}/api/task/${ticketId}`, {
-      method: 'GET',
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to check task status: ${response.statusText}`);
-    }
-
-    return response.json();
-  }
-
-  /**
-   * Wait for a write operation to complete
-   */
-  async waitForCompletion(
-    ticketId: string,
-    maxAttempts = 30,
-    delayMs = 1000
-  ): Promise<TaskStatus> {
-    for (let i = 0; i < maxAttempts; i++) {
-      const status = await this.checkTaskStatus(ticketId);
-
-      if (status.status === 'completed') {
-        return status;
+      if (!response.ok) {
+        throw new Error(`Failed to get pricing quote: ${response.statusText}`);
       }
 
-      if (status.status === 'failed') {
-        throw new Error(`Write operation failed: ${status.error}`);
-      }
-
-      // Wait before next check
-      await new Promise(resolve => setTimeout(resolve, delayMs));
+      return response.json();
+    } catch (error) {
+      console.error('Error getting write quote:', error);
+      throw error;
     }
-
-    throw new Error('Write operation timed out');
   }
 
   /**
@@ -281,10 +317,24 @@ export class OnChainDB {
   now(): string {
     return new Date().toISOString();
   }
+
+  /**
+   * Get raw SDK client for advanced operations
+   */
+  getClient(): OnChainDBClient {
+    return this.client;
+  }
+
+  /**
+   * Get database manager for schema operations
+   */
+  getDbManager(): DatabaseManager {
+    return this.dbManager;
+  }
 }
 
 // Export singleton instance
-export const onchaindb = new OnChainDB();
+export const db = new OnChainDB();
 
-// Export helper types
-export type { WriteOptions, QueryOptions, WriteQuote, TaskStatus };
+// Export types
+export type { PaymentProof, QueryOptions };
