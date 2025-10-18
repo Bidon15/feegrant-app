@@ -9,7 +9,8 @@ export function WalletSetup() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const { data: user } = api.user.me.useQuery();
+  const { data: userd } = api.user.me.useQuery();
+  const user: any = userd;
   const utils = api.useUtils();
 
   const dustMutation = api.wallet.dust.useMutation({

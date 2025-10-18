@@ -168,14 +168,21 @@ export class OnChainDB {
     };
 
     // Use client.store() following TodoService pattern
-    await this.client.store({
+    // Payment proof fields are added directly to the request
+    const storeRequest: any = {
       collection,
       data: [document],
-      payment_tx_hash: paymentProof.payment_tx_hash,
-      user_address: paymentProof.user_address,
-      broker_address: paymentProof.broker_address,
-      amount_utia: paymentProof.amount_utia,
-    });
+    };
+
+    // Add payment proof if provided
+    if (paymentProof) {
+      storeRequest.payment_tx_hash = paymentProof.payment_tx_hash;
+      storeRequest.user_address = paymentProof.user_address;
+      storeRequest.broker_address = paymentProof.broker_address;
+      storeRequest.amount_utia = paymentProof.amount_utia;
+    }
+
+    await this.client.store(storeRequest);
 
     return document as T;
   }
@@ -203,14 +210,21 @@ export class OnChainDB {
       updatedAt: new Date().toISOString(),
     };
 
-    await this.client.store({
+    // Use client.store() following TodoService pattern
+    const storeRequest: any = {
       collection,
       data: [updated],
-      payment_tx_hash: paymentProof.payment_tx_hash,
-      user_address: paymentProof.user_address,
-      broker_address: paymentProof.broker_address,
-      amount_utia: paymentProof.amount_utia,
-    });
+    };
+
+    // Add payment proof if provided
+    if (paymentProof) {
+      storeRequest.payment_tx_hash = paymentProof.payment_tx_hash;
+      storeRequest.user_address = paymentProof.user_address;
+      storeRequest.broker_address = paymentProof.broker_address;
+      storeRequest.amount_utia = paymentProof.amount_utia;
+    }
+
+    await this.client.store(storeRequest);
 
     return updated as T;
   }
@@ -255,14 +269,21 @@ export class OnChainDB {
       updatedAt: new Date().toISOString(),
     };
 
-    await this.client.store({
+    // Use client.store() following TodoService pattern
+    const storeRequest: any = {
       collection,
       data: [deleted],
-      payment_tx_hash: paymentProof.payment_tx_hash,
-      user_address: paymentProof.user_address,
-      broker_address: paymentProof.broker_address,
-      amount_utia: paymentProof.amount_utia,
-    });
+    };
+
+    // Add payment proof if provided
+    if (paymentProof) {
+      storeRequest.payment_tx_hash = paymentProof.payment_tx_hash;
+      storeRequest.user_address = paymentProof.user_address;
+      storeRequest.broker_address = paymentProof.broker_address;
+      storeRequest.amount_utia = paymentProof.amount_utia;
+    }
+
+    await this.client.store(storeRequest);
 
     return true;
   }
@@ -342,5 +363,15 @@ export class OnChainDB {
 // Export singleton instance
 export const db = new OnChainDB();
 
-// Export types
-export type { PaymentProof, QueryOptions };
+/**
+ * Create a dummy payment proof for app-paid writes (pay_from_wallet mode)
+ * TODO: Implement proper payment handling when integrating with wallet system
+ */
+export function createAppPaymentProof(): PaymentProof {
+  return {
+    payment_tx_hash: "APP_WALLET_PAYMENT",
+    user_address: env.ONCHAINDB_BROKER_ADDRESS || "celestia1default",
+    broker_address: env.ONCHAINDB_BROKER_ADDRESS || "celestia1default",
+    amount_utia: 0, // App pays, not user
+  };
+}

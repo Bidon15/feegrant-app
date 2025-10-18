@@ -48,7 +48,11 @@
     "react-dom": "^19.0.0",
     "server-only": "^0.0.1",
     "superjson": "^2.2.1",
-    "zod": "^3.24.2"
+    "zod": "^3.24.2",
+    "pino-pretty": "latest",
+    "@farcaster/miniapp-wagmi-connector": "latest",
+    "@farcaster/mini-app-solana": "latest",
+    "@farcaster/miniapp-sdk": "latest"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",

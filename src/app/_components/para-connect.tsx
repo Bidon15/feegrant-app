@@ -11,10 +11,11 @@ export function ParaConnect() {
   const [isBinding, setIsBinding] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { data: user } = api.user.me.useQuery();
+  const { data: userD } = api.user.me.useQuery();
   const { data: nonce } = api.user.getNonce.useQuery();
   const utils = api.useUtils();
 
+  const user: any = userD;
   const bindAddressMutation = api.user.bindAddress.useMutation({
     onSuccess: () => {
       utils.user.me.invalidate();

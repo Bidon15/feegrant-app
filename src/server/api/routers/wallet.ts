@@ -2,6 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { executeDustJob, executeFeegrantJob } from "~/server/jobs";
+import { createAppPaymentProof } from "~/lib/onchaindb";
 
 export const walletRouter = createTRPCRouter({
   dust: protectedProcedure
@@ -9,15 +10,18 @@ export const walletRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const { address } = input;
 
-      // Check if address belongs to user
-      const userAddress = await ctx.db.address.findUnique({
-        where: { 
-          userId: ctx.session.user.id,
-          bech32: address,
-        },
+      // Check if address belongs to user (OnChainDB query by bech32)
+      const userAddress = await ctx.db.findUnique<{
+        id: string;
+        userId: string;
+        bech32: string;
+        isDusted: boolean;
+        hasFeeGrant: boolean;
+      }>('addresses', {
+        bech32: address,
       });
 
-      if (!userAddress) {
+      if (!userAddress || userAddress.userId !== ctx.session.user.id) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Address not found or not bound to user.",
@@ -61,15 +65,18 @@ export const walletRouter = createTRPCRouter({
         });
       }
 
-      // Check if address belongs to user
-      const userAddress = await ctx.db.address.findUnique({
-        where: { 
-          userId: ctx.session.user.id,
-          bech32: address,
-        },
+      // Check if address belongs to user (OnChainDB query by bech32)
+      const userAddress = await ctx.db.findUnique<{
+        id: string;
+        userId: string;
+        bech32: string;
+        isDusted: boolean;
+        hasFeeGrant: boolean;
+      }>('addresses', {
+        bech32: address,
       });
 
-      if (!userAddress) {
+      if (!userAddress || userAddress.userId !== ctx.session.user.id) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Address not found or not bound to user.",
@@ -97,8 +104,15 @@ export const walletRouter = createTRPCRouter({
 
   status: protectedProcedure
     .query(async ({ ctx }) => {
-      const address = await ctx.db.address.findUnique({
-        where: { userId: ctx.session.user.id },
+      // Get address by userId (OnChainDB query)
+      const address = await ctx.db.findUnique<{
+        id: string;
+        userId: string;
+        bech32: string;
+        isDusted: boolean;
+        hasFeeGrant: boolean;
+      }>('addresses', {
+        userId: ctx.session.user.id,
       });
 
       if (!address) {

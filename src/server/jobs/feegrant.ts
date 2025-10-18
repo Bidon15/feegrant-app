@@ -3,6 +3,7 @@ import { getCelestiaClient } from "~/server/celestia/client";
 import { MsgGrantAllowance } from "cosmjs-types/cosmos/feegrant/v1beta1/tx";
 import { BasicAllowance, AllowedMsgAllowance } from "cosmjs-types/cosmos/feegrant/v1beta1/feegrant";
 import { Any } from "cosmjs-types/google/protobuf/any";
+import { createAppPaymentProof } from "~/lib/onchaindb";
 
 export async function grantFeeAllowance(address: string) {
   const { client, address: backendAddr } = await getCelestiaClient();
@@ -58,17 +59,17 @@ export async function grantFeeAllowance(address: string) {
   } catch (simError: unknown) {
     if (simError instanceof Error && simError.message?.includes("fee allowance already exists")) {
       console.log(`✅ Fee allowance already exists, updating database and returning`);
-      
-      // Update database to reflect existing allowance
-      await db.address.update({
-        where: { bech32: address },
-        data: { 
+
+      // Update database to reflect existing allowance (OnChainDB)
+      await db.update('addresses',
+        { bech32: address },
+        {
           hasFeeGrant: true,
           feeAllowanceRemaining: "1000000", // Assume 1 TIA remaining
         },
-      });
-      
-      
+        createAppPaymentProof()
+      );
+
       return { txHash: "existing_allowance" };
     } else {
       console.error(`❌ Simulation failed with unexpected error:`, simError);
@@ -97,16 +98,16 @@ export async function grantFeeAllowance(address: string) {
     console.error(`❌ Transaction failed: code=${res.code}, log=${res.rawLog}`);
     throw new Error(`Fee grant failed: code=${res.code} log=${res.rawLog}`);
   }
-  
-  // Update database to track fee grant (use actual amount granted)
-  await db.address.update({
-    where: { bech32: address },
-    data: { 
+
+  // Update database to track fee grant (OnChainDB)
+  await db.update('addresses',
+    { bech32: address },
+    {
       hasFeeGrant: true,
       feeAllowanceRemaining: "1000000", // 1 TIA in utia (matching our grant amount)
     },
-  });
-  
-  
+    createAppPaymentProof()
+  );
+
   return { txHash: res.transactionHash };
 }

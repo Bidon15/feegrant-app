@@ -16,9 +16,11 @@ export function WalletConnect() {
   
   const para = useClient();
   const utils = api.useUtils();
-  const { data: user } = api.user.me.useQuery();
+  const { data: userd } = api.user.me.useQuery();
   const { data: nonce } = api.user.getNonce.useQuery();
-  
+
+  const user: any = userd;
+
   // Get Celestia address using the hook
   const celestiaAddress = useCelestiaAddress();
   
