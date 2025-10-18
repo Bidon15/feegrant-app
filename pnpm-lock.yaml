@@ -26,12 +26,18 @@ dependencies:
   '@cosmjs/stargate':
     specifier: ^0.36.0
     version: 0.36.0
+  '@enidon-ai/sdk':
+    specifier: file:../sdk
+    version: file:../sdk
   '@getpara/cosmjs-v0-integration':
     specifier: 2.0.0-alpha.53
     version: 2.0.0-alpha.53(@cosmjs/amino@0.36.1)(@cosmjs/encoding@0.36.0)(@cosmjs/proto-signing@0.36.0)(@cosmjs/stargate@0.36.0)
   '@getpara/react-sdk':
     specifier: 2.0.0-alpha.53
     version: 2.0.0-alpha.53(@cosmjs/amino@0.36.1)(@cosmjs/encoding@0.36.0)(@cosmjs/proto-signing@0.36.0)(@cosmjs/stargate@0.36.0)(@getpara/graz@2.0.0-alpha.20)(@solana-mobile/wallet-adapter-mobile@2.2.5)(@solana/addresses@2.3.0)(@solana/keys@2.3.0)(@solana/rpc-api@2.3.0)(@solana/rpc-spec@2.3.0)(@solana/signers@2.3.0)(@solana/transactions@2.3.0)(@solana/wallet-adapter-base@0.9.27)(@solana/wallet-adapter-react@0.15.39)(@solana/wallet-adapter-walletconnect@0.1.21)(@tanstack/react-query@5.69.0)(@types/react@19.0.0)(fp-ts@2.16.11)(react-dom@19.0.0)(react@19.0.0)(viem@2.38.3)(wagmi@2.18.1)
+  '@paralleldrive/cuid2':
+    specifier: ^2.2.2
+    version: 2.2.2
   '@prisma/client':
     specifier: ^6.5.0
     version: 6.5.0(prisma@6.5.0)(typescript@5.8.2)
@@ -53,6 +59,9 @@ dependencies:
   cosmjs-types:
     specifier: ^0.10.1
     version: 0.10.1
+  dotenv:
+    specifier: ^16.4.7
+    version: 16.4.7
   next:
     specifier: ^15.2.3
     version: 15.2.3(@babel/core@7.28.4)(react-dom@19.0.0)(react@19.0.0)
@@ -1796,8 +1805,8 @@ packages:
       react: 19.0.0
       react-dom: 19.0.0(react@19.0.0)
       starknet: 6.24.1
-      zustand: 4.5.2(@types/react@19.0.0)(react@19.0.0)
-      zustand-sync-tabs: 0.2.3(zustand@4.5.2)
+      zustand: 4.5.7(@types/react@19.0.0)(react@19.0.0)
+      zustand-sync-tabs: 0.2.3(zustand@4.5.7)
     transitivePeerDependencies:
       - '@cosmjs/encoding'
       - '@cosmjs/proto-signing'
@@ -1860,8 +1869,8 @@ packages:
       react-dom: 19.0.0(react@19.0.0)
       viem: 2.38.3(typescript@5.8.2)(zod@3.24.2)
       wagmi: 2.18.1(@tanstack/react-query@5.69.0)(@types/react@19.0.0)(react@19.0.0)(typescript@5.8.2)(viem@2.38.3)(zod@3.24.2)
-      zustand: 4.5.2(@types/react@19.0.0)(react@19.0.0)
-      zustand-sync-tabs: 0.2.3(zustand@4.5.2)
+      zustand: 4.5.7(@types/react@19.0.0)(react@19.0.0)
+      zustand-sync-tabs: 0.2.3(zustand@4.5.7)
     transitivePeerDependencies:
       - '@farcaster/miniapp-sdk'
       - '@types/react'
@@ -2056,8 +2065,8 @@ packages:
       react: 19.0.0
       react-dom: 19.0.0(react@19.0.0)
       styled-components: 6.1.19(react-dom@19.0.0)(react@19.0.0)
-      zustand: 4.5.2(@types/react@19.0.0)(react@19.0.0)
-      zustand-sync-tabs: 0.2.3(zustand@4.5.2)
+      zustand: 4.5.7(@types/react@19.0.0)(react@19.0.0)
+      zustand-sync-tabs: 0.2.3(zustand@4.5.7)
     transitivePeerDependencies:
       - '@emotion/is-prop-valid'
       - '@farcaster/miniapp-sdk'
@@ -3418,6 +3427,12 @@ packages:
     resolution: {integrity: sha512-6oclG6Y3PiDFcoyk8srjLfVKyMfVCKJ27JwNPViuXziFpmdz+MZnZN/aKY0JGXgYuO/VghU0jcOAZgWXZ1Dmrw==}
     dev: false
 
+  /@paralleldrive/cuid2@2.2.2:
+    resolution: {integrity: sha512-ZOBkgDwEdoYVlSeRbYYXs0S9MejQofiVYoTbKzy/6GQa39/q5tQU2IX46+shYnUkpEl3wc+J6wRlar7r2EK2xA==}
+    dependencies:
+      '@noble/hashes': 1.8.0
+    dev: false
+
   /@paulmillr/qr@0.2.1:
     resolution: {integrity: sha512-IHnV6A+zxU7XwmKFinmYjUcwlyK9+xkG3/s9KcQhI9BjQKycrJ1JRO+FbNYPwZiPKW3je/DR0k7w8/gLa5eaxQ==}
     deprecated: 'The package is now available as "qr": npm install qr'
@@ -4315,7 +4330,7 @@ packages:
   /@scure/bip32@1.7.0:
     resolution: {integrity: sha512-E4FFX/N3f4B80AKWp5dP6ow+flD1LQZo/w8UnLGYZO674jS6YnYeepycOOksv+vLPSpgN35wgKgy+ybfTb2SMw==}
     dependencies:
-      '@noble/curves': 1.9.1
+      '@noble/curves': 1.9.7
       '@noble/hashes': 1.8.0
       '@scure/base': 1.2.6
     dev: false
@@ -7594,6 +7609,21 @@ packages:
       zod: 3.24.2
     dev: false
 
+  /abitype@1.1.1(typescript@5.8.2)(zod@3.22.4):
+    resolution: {integrity: sha512-Loe5/6tAgsBukY95eGaPSDmQHIjRZYQq8PB1MpsNccDIK8WiV+Uw6WzaIXipvaxTEL2yEB0OpEaQv3gs8pkS9Q==}
+    peerDependencies:
+      typescript: '>=5.0.4'
+      zod: ^3.22.0 || ^4.0.0
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+      zod:
+        optional: true
+    dependencies:
+      typescript: 5.8.2
+      zod: 3.22.4
+    dev: false
+
   /abitype@1.1.1(typescript@5.8.2)(zod@3.24.2):
     resolution: {integrity: sha512-Loe5/6tAgsBukY95eGaPSDmQHIjRZYQq8PB1MpsNccDIK8WiV+Uw6WzaIXipvaxTEL2yEB0OpEaQv3gs8pkS9Q==}
     peerDependencies:
@@ -8865,6 +8895,11 @@ packages:
 
   /dom-walk@0.1.2:
     resolution: {integrity: sha512-6QvTW9mrGeIegrFXdtQi9pk7O/nSK6lSdXW2eqUspN5LWD7UTji2Fqw5V2YLjBpHEoU9Xl/eUWNpDeZvoyOv2w==}
+    dev: false
+
+  /dotenv@16.4.7:
+    resolution: {integrity: sha512-47qPchRCykZC03FhkYAhrvwU4xDBFIj1QPqaarj6mdM/hgUzfPHcpkHJOn3mJAufFeeAxAzeGsr5X0M4k6fLZQ==}
+    engines: {node: '>=12'}
     dev: false
 
   /dprint-node@1.0.8:
@@ -11869,11 +11904,11 @@ packages:
         optional: true
     dependencies:
       '@adraffy/ens-normalize': 1.11.1
-      '@noble/curves': 1.8.1
-      '@noble/hashes': 1.7.1
-      '@scure/bip32': 1.6.2
-      '@scure/bip39': 1.5.4
-      abitype: 1.0.8(typescript@5.8.2)(zod@3.24.2)
+      '@noble/curves': 1.9.7
+      '@noble/hashes': 1.8.0
+      '@scure/bip32': 1.7.0
+      '@scure/bip39': 1.6.0
+      abitype: 1.1.1(typescript@5.8.2)(zod@3.24.2)
       eventemitter3: 5.0.1
       typescript: 5.8.2
     transitivePeerDependencies:
@@ -11935,7 +11970,7 @@ packages:
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.1.0(typescript@5.8.2)(zod@3.22.4)
+      abitype: 1.1.1(typescript@5.8.2)(zod@3.22.4)
       eventemitter3: 5.0.1
       typescript: 5.8.2
     transitivePeerDependencies:
@@ -11956,7 +11991,7 @@ packages:
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.1.0(typescript@5.8.2)(zod@3.24.2)
+      abitype: 1.1.1(typescript@5.8.2)(zod@3.24.2)
       eventemitter3: 5.0.1
       typescript: 5.8.2
     transitivePeerDependencies:
@@ -14448,14 +14483,6 @@ packages:
     resolution: {integrity: sha512-JInaHOamG8pt5+Ey8kGmdcAcg3OL9reK8ltczgHTAwNhMys/6ThXHityHxVV2p3fkw/c+MAvBHFVYHFZDmjMCQ==}
     dev: false
 
-  /zustand-sync-tabs@0.2.3(zustand@4.5.2):
-    resolution: {integrity: sha512-NtA4g0v6bh34jYzbGVgjsfR6rPjlUc9Oj6QAeKWikxV3UIYEhPo9AEbAk/3X0p6H1o/waBKqZ/nLfRuz7OH4rA==}
-    peerDependencies:
-      zustand: '>=3.0.0 <6.0.0'
-    dependencies:
-      zustand: 4.5.2(@types/react@19.0.0)(react@19.0.0)
-    dev: false
-
   /zustand-sync-tabs@0.2.3(zustand@4.5.7):
     resolution: {integrity: sha512-NtA4g0v6bh34jYzbGVgjsfR6rPjlUc9Oj6QAeKWikxV3UIYEhPo9AEbAk/3X0p6H1o/waBKqZ/nLfRuz7OH4rA==}
     peerDependencies:
@@ -14571,4 +14598,14 @@ packages:
       '@types/react': 19.0.0
       react: 19.0.0
       use-sync-external-store: 1.4.0(react@19.0.0)
+    dev: false
+
+  file:../sdk:
+    resolution: {directory: ../sdk, type: directory}
+    name: '@enidon-ai/sdk'
+    dependencies:
+      axios: 1.12.2
+      eventemitter3: 5.0.1
+    transitivePeerDependencies:
+      - debug
     dev: false

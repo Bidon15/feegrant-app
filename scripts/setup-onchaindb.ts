@@ -3,14 +3,17 @@
  * OnChainDB Setup Script
  *
  * Creates all collections and indexes for the feegrant-app migration
+ * Uses SDK's DatabaseManager following TodoService pattern
  *
  * Usage: npx tsx scripts/setup-onchaindb.ts
  */
 
 import "dotenv/config";
+import { createClient } from "@enidon-ai/sdk";
 
-const API_URL = process.env.ONCHAINDB_API_URL || "http://localhost:3000";
+const API_URL = process.env.ONCHAINDB_API_URL || "http://localhost:9092";
 const APP_ID = process.env.ONCHAINDB_APP_ID || "app_011ef0edbacd4391";
+const API_KEY = "dev_key_12345678901234567890123456789012";
 
 interface CollectionConfig {
   name: string;
@@ -254,42 +257,94 @@ async function createIndex(collectionName: string, index: IndexConfig): Promise<
 }
 
 async function main() {
-  console.log("🚀 Starting OnChainDB setup for feegrant-app\n");
+  console.log("🚀 Starting OnChainDB setup for feegrant-app (using SDK)\n");
   console.log(`📍 API URL: ${API_URL}`);
   console.log(`📱 App ID: ${APP_ID}\n`);
 
-  // Create all collections
-  for (const [key, collection] of Object.entries(collections)) {
-    await createCollection(collection);
+  try {
+    // Create SDK client following TodoService pattern
+    const client = createClient({
+      endpoint: API_URL,
+      apiKey: API_KEY,
+      appId: APP_ID,
+    });
 
-    // Small delay between operations
-    await new Promise((resolve) => setTimeout(resolve, 500));
-  }
+    const dbManager = client.database(APP_ID);
+    console.log("✅ SDK client created\n");
 
-  console.log("\n");
+    // Create all collections first
+    console.log("📦 Creating collections...\n");
+    for (const [key, collection] of Object.entries(collections)) {
+      try {
+        console.log(`  📦 Creating collection: ${collection.name}...`);
 
-  // Create all indexes
-  for (const [collectionName, collectionIndexes] of Object.entries(indexes)) {
-    console.log(`🔧 Setting up indexes for ${collectionName}:`);
+        await dbManager.createCollection(collection.name, {
+          namespace: collection.namespace,
+          primary_column: collection.primary_column,
+          sort_column: collection.sort_column,
+        });
 
-    for (const index of collectionIndexes) {
-      await createIndex(collectionName, index);
+        console.log(`  ✅ Created collection: ${collection.name}`);
+      } catch (error: any) {
+        console.log(`  ❌ Collection ${collection.name} failed: ${error.message}`);
+        if (error.response?.data) {
+          console.log(`     Response: ${JSON.stringify(error.response.data)}`);
+        }
+      }
 
-      // Small delay between operations
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 300));
     }
 
-    console.log("");
-  }
+    console.log("\n🔧 Creating indexes...\n");
 
-  console.log("✅ OnChainDB setup complete!\n");
-  console.log("📊 Summary:");
-  console.log(`  - Collections created: ${Object.keys(collections).length}`);
-  console.log(`  - Total indexes created: ${Object.values(indexes).flat().length}`);
-  console.log("\nNext steps:");
-  console.log("  1. Update .env with OnChainDB configuration");
-  console.log("  2. Run migration script to import existing data");
-  console.log("  3. Test the application with OnChainDB");
+    // Create all indexes
+    for (const [collectionName, collectionIndexes] of Object.entries(indexes)) {
+      console.log(`🔧 Setting up indexes for ${collectionName}:`);
+
+      for (const index of collectionIndexes) {
+        try {
+          console.log(`  🔍 Creating index: ${index.name}...`);
+
+          await dbManager.createIndex({
+            name: index.name,
+            collection: collectionName,
+            field_name: index.field_name,
+            index_type: index.index_type as any,
+            options: {
+              unique: index.unique,
+            },
+          });
+
+          console.log(`  ✅ Created index: ${index.name}`);
+        } catch (error: any) {
+          console.log(`  ❌ Index ${index.name} failed: ${error.message}`);
+          if (error.response?.data) {
+            console.log(`     Response: ${JSON.stringify(error.response.data)}`);
+          }
+        }
+
+        // Small delay between operations
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      }
+
+      console.log("");
+    }
+
+    console.log("✅ OnChainDB setup complete!\n");
+    console.log("📊 Summary:");
+    console.log(`  - Collections created: ${Object.keys(collections).length}`);
+    console.log(`  - Indexes created: ${Object.values(indexes).flat().length}`);
+    console.log("\nNext steps:");
+    console.log("  1. Collections and indexes are now ready");
+    console.log("  2. Run migration script to import existing data from PostgreSQL");
+    console.log("  3. Test the application with OnChainDB");
+  } catch (error: any) {
+    console.error("❌ Setup failed:", error.message);
+    if (error.response) {
+      console.error("Response:", error.response.data);
+    }
+    process.exit(1);
+  }
 }
 
 main().catch((error) => {

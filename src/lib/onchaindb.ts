@@ -8,23 +8,25 @@
 
 import { createClient, OnChainDBClient, DatabaseManager } from '../../../sdk';
 import { env } from "~/env";
-import { cuid } from "cuid2";
+import { createId } from "@paralleldrive/cuid2";
 
 // SDK Client instance
 let client: OnChainDBClient;
 let dbManager: DatabaseManager;
 
 /**
- * Initialize the OnChainDB client
+ * Initialize the OnChainDB client (following TodoService pattern)
  */
 export function initializeClient() {
   if (!client) {
+    // Create SDK client following TodoService pattern
     client = createClient({
       endpoint: env.ONCHAINDB_API_URL,
-      appId: env.ONCHAINDB_APP_ID,
       apiKey: env.ONCHAINDB_APP_HASH,
+      appId: env.ONCHAINDB_APP_ID,
     });
 
+    // Get database manager for schema operations
     dbManager = client.database(env.ONCHAINDB_APP_ID);
   }
 
@@ -71,20 +73,22 @@ export class OnChainDB {
 
   /**
    * Find a single document by query (like Prisma's findUnique)
+   * Following TodoService pattern
    */
   async findUnique<T>(
     collection: string,
     where: Record<string, any>
   ): Promise<T | null> {
     try {
-      // Build query with all where conditions
+      // Build query using TodoService pattern
       let queryBuilder = this.client.queryBuilder().collection(collection);
 
-      // Add each where condition
+      // Add each where condition using whereField().equals() pattern
       for (const [field, value] of Object.entries(where)) {
         queryBuilder = queryBuilder.whereField(field).equals(value);
       }
 
+      // Execute query with selectAll() and limit(1)
       const result = await queryBuilder.selectAll().limit(1).execute();
 
       if (!result.records || result.records.length === 0) {
@@ -149,6 +153,7 @@ export class OnChainDB {
 
   /**
    * Create a new document (like Prisma's create)
+   * Following TodoService store() pattern
    */
   async create<T extends Record<string, any>>(
     collection: string,
@@ -156,12 +161,13 @@ export class OnChainDB {
     paymentProof: PaymentProof
   ): Promise<T> {
     const document: any = {
-      id: cuid(),
+      id: createId(),
       ...data,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
+    // Use client.store() following TodoService pattern
     await this.client.store({
       collection,
       data: [document],
@@ -308,7 +314,7 @@ export class OnChainDB {
    * Generate a unique ID for documents
    */
   generateId(): string {
-    return cuid();
+    return createId();
   }
 
   /**

@@ -39,7 +39,7 @@
     "@trpc/react-query": "^11.0.0",
     "@trpc/server": "^11.0.0",
     "cosmjs-types": "^0.10.1",
-    "cuid2": "^2.2.2",
+    "@paralleldrive/cuid2": "^2.2.2",
     "dotenv": "^16.4.7",
     "@enidon-ai/sdk": "file:../sdk",
     "next": "^15.2.3",
