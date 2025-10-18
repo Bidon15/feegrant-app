@@ -25,6 +25,12 @@ export const env = createEnv({
     MOCHA_RECOVERY_WALLET: z.string(),
     CELESTIA_CHAIN_ID: z.string().default("mocha-4"),
     COMMIT_URL: z.string().url(),
+
+    // OnChainDB Configuration
+    ONCHAINDB_API_URL: z.string().url(),
+    ONCHAINDB_APP_ID: z.string(),
+    ONCHAINDB_APP_HASH: z.string().optional(),
+    ONCHAINDB_BROKER_ADDRESS: z.string().optional(),
   },
 
   /**
@@ -51,6 +57,10 @@ export const env = createEnv({
     MOCHA_RECOVERY_WALLET: process.env.MOCHA_RECOVERY_WALLET,
     CELESTIA_CHAIN_ID: process.env.CELESTIA_CHAIN_ID,
     COMMIT_URL: process.env.COMMIT_URL,
+    ONCHAINDB_API_URL: process.env.ONCHAINDB_API_URL,
+    ONCHAINDB_APP_ID: process.env.ONCHAINDB_APP_ID,
+    ONCHAINDB_APP_HASH: process.env.ONCHAINDB_APP_HASH,
+    ONCHAINDB_BROKER_ADDRESS: process.env.ONCHAINDB_BROKER_ADDRESS,
     NEXT_PUBLIC_PARA_API_KEY: process.env.NEXT_PUBLIC_PARA_API_KEY,
     NEXT_PUBLIC_RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_ENDPOINT,
   },
