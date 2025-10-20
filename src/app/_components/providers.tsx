@@ -19,7 +19,13 @@ export function Providers({
         }}
         config={{
             appName: "Blonker",
-        }}
+            chains: [
+                {
+                    chainId: "mocha-4",
+                    chainName: "Celestia Mocha Testnet",
+                },
+            ],
+        } as never}
       >
         {children}
       </ParaProvider>

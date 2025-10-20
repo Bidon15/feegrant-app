@@ -4,16 +4,30 @@ import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { Secp256k1, sha256 } from "@cosmjs/crypto";
 import { Secp256k1Signature } from "@cosmjs/crypto";
 import { fromBech32, toBech32 } from "@cosmjs/encoding";
+import { createAppPaymentProof } from "~/lib/onchaindb";
 
 export const userRouter = createTRPCRouter({
   me: protectedProcedure
     .query(async ({ ctx }) => {
-      const user = await ctx.db.user.findUnique({
-        where: { id: ctx.session.user.id },
-        include: { address: true },
+      // Get user from OnChainDB
+      const user = await ctx.db.findUnique('users', {
+        id: ctx.session.user.id,
       });
 
-      return user;
+      if (!user) {
+        return null;
+      }
+
+      // Get user's address if it exists
+      const address = await ctx.db.findUnique('addresses', {
+        userId: ctx.session.user.id,
+      });
+
+      // Combine user with address (similar to Prisma's include)
+      return {
+        ...user,
+        address,
+      } as any;
     }),
 
   bindAddress: protectedProcedure
@@ -38,9 +52,9 @@ export const userRouter = createTRPCRouter({
         });
       }
 
-      // Check if address is already bound
-      const existingAddress = await ctx.db.address.findUnique({
-        where: { bech32: address },
+      // Check if address is already bound (OnChainDB query)
+      const existingAddress = await ctx.db.findUnique('addresses', {
+        bech32: address,
       });
 
       if (existingAddress) {
@@ -50,9 +64,9 @@ export const userRouter = createTRPCRouter({
         });
       }
 
-      // Check if user already has an address bound
-      const userAddress = await ctx.db.address.findUnique({
-        where: { userId: ctx.session.user.id },
+      // Check if user already has an address bound (OnChainDB query)
+      const userAddress = await ctx.db.findUnique('addresses', {
+        userId: ctx.session.user.id,
       });
 
       if (userAddress) {
@@ -119,13 +133,17 @@ export const userRouter = createTRPCRouter({
       });
     }
 
-      // Bind address to user
-      const newAddress = await ctx.db.address.create({
-        data: {
+      // Bind address to user (OnChainDB create with app payment)
+      const newAddress = await ctx.db.createDocument(
+        "addresses",
+        {
           userId: ctx.session.user.id,
           bech32: address,
+          isDusted: false,
+          hasFeeGrant: false,
         },
-      });
+        createAppPaymentProof(),
+      );
 
       return { success: true, address: newAddress };
     }),
