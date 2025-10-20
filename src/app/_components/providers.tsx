@@ -25,7 +25,7 @@ export function Providers({
                     chainName: "Celestia Mocha Testnet",
                 },
             ],
-        }}
+        } as never}
       >
         {children}
       </ParaProvider>

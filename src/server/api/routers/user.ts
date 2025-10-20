@@ -27,7 +27,7 @@ export const userRouter = createTRPCRouter({
       return {
         ...user,
         address,
-      };
+      } as any;
     }),
 
   bindAddress: protectedProcedure
@@ -134,12 +134,16 @@ export const userRouter = createTRPCRouter({
     }
 
       // Bind address to user (OnChainDB create with app payment)
-      const newAddress = await ctx.db.create('addresses', {
-        userId: ctx.session.user.id,
-        bech32: address,
-        isDusted: false,
-        hasFeeGrant: false,
-      }, createAppPaymentProof());
+      const newAddress = await ctx.db.createDocument(
+        "addresses",
+        {
+          userId: ctx.session.user.id,
+          bech32: address,
+          isDusted: false,
+          hasFeeGrant: false,
+        },
+        createAppPaymentProof(),
+      );
 
       return { success: true, address: newAddress };
     }),

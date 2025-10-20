@@ -35,7 +35,7 @@ export async function sendDust(address: string) {
   );
 
   // Update address to mark as dusted (OnChainDB)
-  await db.update('addresses',
+  await db.updateDocument('addresses',
     { bech32: address },
     { isDusted: true },
     createAppPaymentProof()

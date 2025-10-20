@@ -33,7 +33,7 @@ export function initializeClient() {
 }
 
 // Auto-initialize on import
-initializeClient();
+const {client: dbC } = initializeClient();
 
 /**
  * Payment proof structure for write operations
@@ -46,7 +46,7 @@ export interface PaymentProof {
 }
 
 // Export the SDK client directly - it now has all the Prisma-like methods built in!
-export const db = client;
+export const db = dbC;
 
 // Also export the database manager for schema operations
 export { dbManager };

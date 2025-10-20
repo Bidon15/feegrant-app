@@ -29,12 +29,21 @@ dependencies:
   '@enidon-ai/sdk':
     specifier: file:../sdk
     version: file:../sdk
+  '@farcaster/mini-app-solana':
+    specifier: latest
+    version: 1.1.1(@farcaster/miniapp-sdk@0.2.1)(@solana/wallet-adapter-base@0.9.27)(@solana/wallet-adapter-react@0.15.39)(react@19.0.0)(typescript@5.8.2)
+  '@farcaster/miniapp-sdk':
+    specifier: latest
+    version: 0.2.1(typescript@5.8.2)(zod@3.24.2)
+  '@farcaster/miniapp-wagmi-connector':
+    specifier: latest
+    version: 1.1.0(@farcaster/miniapp-sdk@0.2.1)(@wagmi/core@2.22.1)(viem@2.38.3)
   '@getpara/cosmjs-v0-integration':
     specifier: 2.0.0-alpha.53
     version: 2.0.0-alpha.53(@cosmjs/amino@0.36.1)(@cosmjs/encoding@0.36.0)(@cosmjs/proto-signing@0.36.0)(@cosmjs/stargate@0.36.0)
   '@getpara/react-sdk':
     specifier: 2.0.0-alpha.53
-    version: 2.0.0-alpha.53(@cosmjs/amino@0.36.1)(@cosmjs/encoding@0.36.0)(@cosmjs/proto-signing@0.36.0)(@cosmjs/stargate@0.36.0)(@getpara/graz@2.0.0-alpha.20)(@solana-mobile/wallet-adapter-mobile@2.2.5)(@solana/addresses@2.3.0)(@solana/keys@2.3.0)(@solana/rpc-api@2.3.0)(@solana/rpc-spec@2.3.0)(@solana/signers@2.3.0)(@solana/transactions@2.3.0)(@solana/wallet-adapter-base@0.9.27)(@solana/wallet-adapter-react@0.15.39)(@solana/wallet-adapter-walletconnect@0.1.21)(@tanstack/react-query@5.69.0)(@types/react@19.0.0)(fp-ts@2.16.11)(react-dom@19.0.0)(react@19.0.0)(viem@2.38.3)(wagmi@2.18.1)
+    version: 2.0.0-alpha.53(@cosmjs/amino@0.36.1)(@cosmjs/encoding@0.36.0)(@cosmjs/proto-signing@0.36.0)(@cosmjs/stargate@0.36.0)(@farcaster/mini-app-solana@1.1.1)(@farcaster/miniapp-sdk@0.2.1)(@farcaster/miniapp-wagmi-connector@1.1.0)(@getpara/graz@2.0.0-alpha.20)(@solana-mobile/wallet-adapter-mobile@2.2.5)(@solana/addresses@2.3.0)(@solana/keys@2.3.0)(@solana/rpc-api@2.3.0)(@solana/rpc-spec@2.3.0)(@solana/signers@2.3.0)(@solana/transactions@2.3.0)(@solana/wallet-adapter-base@0.9.27)(@solana/wallet-adapter-react@0.15.39)(@solana/wallet-adapter-walletconnect@0.1.21)(@tanstack/react-query@5.69.0)(@types/react@19.0.0)(fp-ts@2.16.11)(react-dom@19.0.0)(react@19.0.0)(viem@2.38.3)(wagmi@2.18.1)
   '@paralleldrive/cuid2':
     specifier: ^2.2.2
     version: 2.2.2
@@ -68,6 +77,9 @@ dependencies:
   next-auth:
     specifier: 5.0.0-beta.25
     version: 5.0.0-beta.25(next@15.2.3)(react@19.0.0)
+  pino-pretty:
+    specifier: latest
+    version: 13.1.2
   react:
     specifier: ^19.0.0
     version: 19.0.0
@@ -1664,6 +1676,82 @@ packages:
       '@ethersproject/strings': 5.8.0
     dev: false
 
+  /@farcaster/mini-app-solana@1.1.1(@farcaster/miniapp-sdk@0.2.1)(@solana/wallet-adapter-base@0.9.27)(@solana/wallet-adapter-react@0.15.39)(react@19.0.0)(typescript@5.8.2):
+    resolution: {integrity: sha512-o0xqnzbQe+GIDdRtIkuXCD50z01JuFlbNAHsBBNDLf2QYaRzSYIS2duGSEmvpLsr7vxBNF2E9zBzsOfk7bAeEg==}
+    engines: {node: '>=22.11.0'}
+    peerDependencies:
+      '@farcaster/miniapp-sdk': '>=0.2.1'
+      '@solana/wallet-adapter-base': '>=0.9.0'
+      '@solana/wallet-adapter-react': '>=0.15.0'
+      react: '>=18.0.0'
+    dependencies:
+      '@farcaster/miniapp-core': 0.4.1(typescript@5.8.2)
+      '@farcaster/miniapp-sdk': 0.2.1(typescript@5.8.2)(zod@3.24.2)
+      '@scure/base': 1.2.6
+      '@solana/wallet-adapter-base': 0.9.27(@solana/web3.js@1.98.4)
+      '@solana/wallet-adapter-react': 0.15.39(@solana/web3.js@1.98.4)(bs58@6.0.0)(fastestsmallesttextencoderdecoder@1.0.22)(react-native@0.82.0)(react@19.0.0)(typescript@5.8.2)
+      '@solana/wallet-standard-features': 1.3.0
+      '@wallet-standard/base': 1.1.0
+      '@wallet-standard/features': 1.1.0
+      react: 19.0.0
+    transitivePeerDependencies:
+      - bufferutil
+      - encoding
+      - typescript
+      - utf-8-validate
+    dev: false
+
+  /@farcaster/miniapp-core@0.4.1(typescript@5.8.2):
+    resolution: {integrity: sha512-20FxHTRToYUKx7CQ8PvIy9OoQ6XjdmF1pRMS7dsj37qdqjVDeEkYoK8yXwnoReZoJRcYwIg8P3i6V8bTWNR5mg==}
+    dependencies:
+      '@solana/web3.js': 1.98.4(typescript@5.8.2)
+      ox: 0.4.4(typescript@5.8.2)(zod@3.25.76)
+      zod: 3.25.76
+    transitivePeerDependencies:
+      - bufferutil
+      - encoding
+      - typescript
+      - utf-8-validate
+    dev: false
+
+  /@farcaster/miniapp-sdk@0.2.1(typescript@5.8.2)(zod@3.24.2):
+    resolution: {integrity: sha512-2SnDeOtDdlN1lGQt7UyH2jkrZRQDOkmhcrlzNWazYChyPh9XfV8+9fMS+Lr/E2pEws9Q40Xl9POrCzdpUC19lg==}
+    dependencies:
+      '@farcaster/miniapp-core': 0.4.1(typescript@5.8.2)
+      '@farcaster/quick-auth': 0.0.6(typescript@5.8.2)
+      comlink: 4.4.2
+      eventemitter3: 5.0.1
+      ox: 0.4.4(typescript@5.8.2)(zod@3.24.2)
+    transitivePeerDependencies:
+      - bufferutil
+      - encoding
+      - typescript
+      - utf-8-validate
+      - zod
+    dev: false
+
+  /@farcaster/miniapp-wagmi-connector@1.1.0(@farcaster/miniapp-sdk@0.2.1)(@wagmi/core@2.22.1)(viem@2.38.3):
+    resolution: {integrity: sha512-gf0nDx9nNJ6hJXbFBCgiTitb0eEqBvCU/njcyTXf7ebZhT0pzOrarOod2dkeisU5Py+WWjFyOVcqmeo4G3IvDA==}
+    peerDependencies:
+      '@farcaster/miniapp-sdk': ^0.2.0
+      '@wagmi/core': ^2.14.1
+      viem: ^2.21.55
+    dependencies:
+      '@farcaster/miniapp-sdk': 0.2.1(typescript@5.8.2)(zod@3.24.2)
+      '@wagmi/core': 2.22.1(@types/react@19.0.0)(react@19.0.0)(typescript@5.8.2)(use-sync-external-store@1.4.0)(viem@2.38.3)
+      viem: 2.38.3(typescript@5.8.2)(zod@3.24.2)
+    dev: false
+
+  /@farcaster/quick-auth@0.0.6(typescript@5.8.2):
+    resolution: {integrity: sha512-tiZndhpfDtEhaKlkmS5cVDuS+A/tafqZT3y9I44rC69m3beJok6e8dIH2JhxVy3EvOWTyTBnrmNn6GOOh+qK6A==}
+    peerDependencies:
+      typescript: 5.8.3
+    dependencies:
+      jose: 5.10.0
+      typescript: 5.8.2
+      zod: 3.25.76
+    dev: false
+
   /@gemini-wallet/core@0.2.0(viem@2.38.3):
     resolution: {integrity: sha512-vv9aozWnKrrPWQ3vIFcWk7yta4hQW1Ie0fsNNPeXnjAxkbXr2hqMagEptLuMxpEP2W3mnRu05VDNKzcvAuuZDw==}
     peerDependencies:
@@ -1764,16 +1852,16 @@ packages:
       - debug
     dev: false
 
-  /@getpara/cosmos-wallet-connectors@2.0.0-alpha.53(@cosmjs/encoding@0.36.0)(@cosmjs/proto-signing@0.36.0)(@getpara/graz@2.0.0-alpha.20)(@types/react@19.0.0)(fp-ts@2.16.11)(react-dom@19.0.0)(react@19.0.0):
+  /@getpara/cosmos-wallet-connectors@2.0.0-alpha.53(@cosmjs/encoding@0.36.0)(@cosmjs/proto-signing@0.36.0)(@farcaster/miniapp-sdk@0.2.1)(@getpara/graz@2.0.0-alpha.20)(@types/react@19.0.0)(fp-ts@2.16.11)(react-dom@19.0.0)(react@19.0.0):
     resolution: {integrity: sha512-/RHyq8uSNbycUfZ2ErL+t2ZKlr359tooZPxw4kgVjZNNYn+24/PY/j/6CowDq3zbVlufKqEAz/+JprOgk/k5Ww==}
     peerDependencies:
       '@getpara/graz': '>=2.0.0-alpha.5'
       react: '>=18'
       react-dom: '>=18'
     dependencies:
-      '@getpara/graz': 2.0.0-alpha.20(@cosmjs/amino@0.36.1)(@cosmjs/cosmwasm-stargate@0.31.3)(@cosmjs/encoding@0.36.0)(@cosmjs/launchpad@0.27.1)(@cosmjs/proto-signing@0.36.0)(@cosmjs/stargate@0.36.0)(@cosmjs/tendermint-rpc@0.31.3)(@leapwallet/cosmos-social-login-capsule-provider@0.0.41)(@solana-mobile/wallet-adapter-mobile@2.2.5)(@solana/addresses@2.3.0)(@solana/keys@2.3.0)(@solana/rpc-api@2.3.0)(@solana/rpc-spec@2.3.0)(@solana/signers@2.3.0)(@solana/transactions@2.3.0)(@solana/wallet-adapter-base@0.9.27)(@solana/wallet-adapter-react@0.15.39)(@solana/wallet-adapter-walletconnect@0.1.21)(@terra-money/feather.js@3.0.0-beta.3)(@types/react@19.0.0)(axios@0.27.2)(fp-ts@2.16.11)(react-dom@19.0.0)(react@19.0.0)(starknet@6.24.1)(viem@2.38.3)(wagmi@2.18.1)
-      '@getpara/react-common': 2.0.0-alpha.53(react-dom@19.0.0)(react@19.0.0)
-      '@getpara/web-sdk': 2.0.0-alpha.53
+      '@getpara/graz': 2.0.0-alpha.20(@cosmjs/amino@0.36.1)(@cosmjs/cosmwasm-stargate@0.31.3)(@cosmjs/encoding@0.36.0)(@cosmjs/launchpad@0.27.1)(@cosmjs/proto-signing@0.36.0)(@cosmjs/stargate@0.36.0)(@cosmjs/tendermint-rpc@0.31.3)(@farcaster/mini-app-solana@1.1.1)(@farcaster/miniapp-sdk@0.2.1)(@farcaster/miniapp-wagmi-connector@1.1.0)(@leapwallet/cosmos-social-login-capsule-provider@0.0.41)(@solana-mobile/wallet-adapter-mobile@2.2.5)(@solana/addresses@2.3.0)(@solana/keys@2.3.0)(@solana/rpc-api@2.3.0)(@solana/rpc-spec@2.3.0)(@solana/signers@2.3.0)(@solana/transactions@2.3.0)(@solana/wallet-adapter-base@0.9.27)(@solana/wallet-adapter-react@0.15.39)(@solana/wallet-adapter-walletconnect@0.1.21)(@terra-money/feather.js@3.0.0-beta.3)(@types/react@19.0.0)(axios@0.27.2)(fp-ts@2.16.11)(react-dom@19.0.0)(react@19.0.0)(starknet@6.24.1)(viem@2.38.3)(wagmi@2.18.1)
+      '@getpara/react-common': 2.0.0-alpha.53(@farcaster/miniapp-sdk@0.2.1)(react-dom@19.0.0)(react@19.0.0)
+      '@getpara/web-sdk': 2.0.0-alpha.53(@farcaster/miniapp-sdk@0.2.1)
       '@leapwallet/cosmos-social-login-capsule-provider': 0.0.41(@cosmjs/encoding@0.36.0)(@cosmjs/proto-signing@0.36.0)(fp-ts@2.16.11)
       react: 19.0.0
       react-dom: 19.0.0(react@19.0.0)
@@ -1791,16 +1879,16 @@ packages:
       - immer
     dev: false
 
-  /@getpara/cosmos-wallet-connectors@2.0.0-alpha.64(@cosmjs/encoding@0.36.0)(@cosmjs/proto-signing@0.36.0)(@getpara/graz@2.0.0-alpha.20)(@types/react@19.0.0)(fp-ts@2.16.11)(react-dom@19.0.0)(react@19.0.0):
+  /@getpara/cosmos-wallet-connectors@2.0.0-alpha.64(@cosmjs/encoding@0.36.0)(@cosmjs/proto-signing@0.36.0)(@farcaster/miniapp-sdk@0.2.1)(@getpara/graz@2.0.0-alpha.20)(@types/react@19.0.0)(fp-ts@2.16.11)(react-dom@19.0.0)(react@19.0.0):
     resolution: {integrity: sha512-Al31kpeBbekdu5QRAHib4+9xb7qZsFA684jn+yO0/tR97d+2FwIu0Hk7Ax6h4nuy8D+4bGoufjeupRx8vWXv9Q==}
     peerDependencies:
       '@getpara/graz': '>=2.0.0-alpha.5'
       react: '>=18'
       react-dom: '>=18'
     dependencies:
-      '@getpara/graz': 2.0.0-alpha.20(@cosmjs/amino@0.36.1)(@cosmjs/cosmwasm-stargate@0.31.3)(@cosmjs/encoding@0.36.0)(@cosmjs/launchpad@0.27.1)(@cosmjs/proto-signing@0.36.0)(@cosmjs/stargate@0.36.0)(@cosmjs/tendermint-rpc@0.31.3)(@leapwallet/cosmos-social-login-capsule-provider@0.0.41)(@solana-mobile/wallet-adapter-mobile@2.2.5)(@solana/addresses@2.3.0)(@solana/keys@2.3.0)(@solana/rpc-api@2.3.0)(@solana/rpc-spec@2.3.0)(@solana/signers@2.3.0)(@solana/transactions@2.3.0)(@solana/wallet-adapter-base@0.9.27)(@solana/wallet-adapter-react@0.15.39)(@solana/wallet-adapter-walletconnect@0.1.21)(@terra-money/feather.js@3.0.0-beta.3)(@types/react@19.0.0)(axios@0.27.2)(fp-ts@2.16.11)(react-dom@19.0.0)(react@19.0.0)(starknet@6.24.1)(viem@2.38.3)(wagmi@2.18.1)
-      '@getpara/react-common': 2.0.0-alpha.64(react-dom@19.0.0)(react@19.0.0)
-      '@getpara/web-sdk': 2.0.0-alpha.64
+      '@getpara/graz': 2.0.0-alpha.20(@cosmjs/amino@0.36.1)(@cosmjs/cosmwasm-stargate@0.31.3)(@cosmjs/encoding@0.36.0)(@cosmjs/launchpad@0.27.1)(@cosmjs/proto-signing@0.36.0)(@cosmjs/stargate@0.36.0)(@cosmjs/tendermint-rpc@0.31.3)(@farcaster/mini-app-solana@1.1.1)(@farcaster/miniapp-sdk@0.2.1)(@farcaster/miniapp-wagmi-connector@1.1.0)(@leapwallet/cosmos-social-login-capsule-provider@0.0.41)(@solana-mobile/wallet-adapter-mobile@2.2.5)(@solana/addresses@2.3.0)(@solana/keys@2.3.0)(@solana/rpc-api@2.3.0)(@solana/rpc-spec@2.3.0)(@solana/signers@2.3.0)(@solana/transactions@2.3.0)(@solana/wallet-adapter-base@0.9.27)(@solana/wallet-adapter-react@0.15.39)(@solana/wallet-adapter-walletconnect@0.1.21)(@terra-money/feather.js@3.0.0-beta.3)(@types/react@19.0.0)(axios@0.27.2)(fp-ts@2.16.11)(react-dom@19.0.0)(react@19.0.0)(starknet@6.24.1)(viem@2.38.3)(wagmi@2.18.1)
+      '@getpara/react-common': 2.0.0-alpha.64(@farcaster/miniapp-sdk@0.2.1)(react-dom@19.0.0)(react@19.0.0)
+      '@getpara/web-sdk': 2.0.0-alpha.64(@farcaster/miniapp-sdk@0.2.1)
       '@leapwallet/cosmos-social-login-capsule-provider': 0.0.41(@cosmjs/encoding@0.36.0)(@cosmjs/proto-signing@0.36.0)(fp-ts@2.16.11)
       react: 19.0.0
       react-dom: 19.0.0(react@19.0.0)
@@ -1818,7 +1906,7 @@ packages:
       - immer
     dev: false
 
-  /@getpara/evm-wallet-connectors@2.0.0-alpha.53(@tanstack/react-query@5.69.0)(@types/react@19.0.0)(react-dom@19.0.0)(react@19.0.0)(viem@2.38.3)(wagmi@2.18.1):
+  /@getpara/evm-wallet-connectors@2.0.0-alpha.53(@farcaster/miniapp-sdk@0.2.1)(@farcaster/miniapp-wagmi-connector@1.1.0)(@tanstack/react-query@5.69.0)(@types/react@19.0.0)(react-dom@19.0.0)(react@19.0.0)(viem@2.38.3)(wagmi@2.18.1):
     resolution: {integrity: sha512-hhTQUJMG+wiCjXW5InAIjiFwvkZMqYsXGd08VuTcDf/IPNiFpHUNR7p5BpdmyBjtyzc5GMz8PSdbK18iCWO33Q==}
     peerDependencies:
       '@farcaster/miniapp-wagmi-connector': ^1.0.0
@@ -1832,8 +1920,9 @@ packages:
         optional: true
     dependencies:
       '@coinbase/wallet-sdk': 4.3.0
-      '@getpara/wagmi-v2-connector': 2.0.0-alpha.53(react-dom@19.0.0)(react@19.0.0)(viem@2.38.3)(wagmi@2.18.1)
-      '@getpara/web-sdk': 2.0.0-alpha.53
+      '@farcaster/miniapp-wagmi-connector': 1.1.0(@farcaster/miniapp-sdk@0.2.1)(@wagmi/core@2.22.1)(viem@2.38.3)
+      '@getpara/wagmi-v2-connector': 2.0.0-alpha.53(@farcaster/miniapp-sdk@0.2.1)(react-dom@19.0.0)(react@19.0.0)(viem@2.38.3)(wagmi@2.18.1)
+      '@getpara/web-sdk': 2.0.0-alpha.53(@farcaster/miniapp-sdk@0.2.1)
       '@tanstack/react-query': 5.69.0(react@19.0.0)
       react: 19.0.0
       react-dom: 19.0.0(react@19.0.0)
@@ -1848,7 +1937,7 @@ packages:
       - immer
     dev: false
 
-  /@getpara/evm-wallet-connectors@2.0.0-alpha.64(@tanstack/react-query@5.90.5)(@types/react@19.0.0)(react-dom@19.0.0)(react@19.0.0)(viem@2.38.3)(wagmi@2.18.1):
+  /@getpara/evm-wallet-connectors@2.0.0-alpha.64(@farcaster/miniapp-sdk@0.2.1)(@farcaster/miniapp-wagmi-connector@1.1.0)(@tanstack/react-query@5.90.5)(@types/react@19.0.0)(react-dom@19.0.0)(react@19.0.0)(viem@2.38.3)(wagmi@2.18.1):
     resolution: {integrity: sha512-gCJHw+CR57XYMZv47ru6ZTCYq26ry5zSisdDXm5KuDZRmG1pOAYMof5bD7SwynAP9vt2LKQ4WSpDRjzcW/WUZg==}
     peerDependencies:
       '@farcaster/miniapp-wagmi-connector': ^1.0.0
@@ -1862,8 +1951,9 @@ packages:
         optional: true
     dependencies:
       '@coinbase/wallet-sdk': 4.3.0
-      '@getpara/wagmi-v2-connector': 2.0.0-alpha.64(react-dom@19.0.0)(react@19.0.0)(viem@2.38.3)(wagmi@2.18.1)
-      '@getpara/web-sdk': 2.0.0-alpha.64
+      '@farcaster/miniapp-wagmi-connector': 1.1.0(@farcaster/miniapp-sdk@0.2.1)(@wagmi/core@2.22.1)(viem@2.38.3)
+      '@getpara/wagmi-v2-connector': 2.0.0-alpha.64(@farcaster/miniapp-sdk@0.2.1)(react-dom@19.0.0)(react@19.0.0)(viem@2.38.3)(wagmi@2.18.1)
+      '@getpara/web-sdk': 2.0.0-alpha.64(@farcaster/miniapp-sdk@0.2.1)
       '@tanstack/react-query': 5.90.5(react@19.0.0)
       react: 19.0.0
       react-dom: 19.0.0(react@19.0.0)
@@ -1878,7 +1968,7 @@ packages:
       - immer
     dev: false
 
-  /@getpara/graz@2.0.0-alpha.20(@cosmjs/amino@0.36.1)(@cosmjs/cosmwasm-stargate@0.31.3)(@cosmjs/encoding@0.36.0)(@cosmjs/launchpad@0.27.1)(@cosmjs/proto-signing@0.36.0)(@cosmjs/stargate@0.36.0)(@cosmjs/tendermint-rpc@0.31.3)(@leapwallet/cosmos-social-login-capsule-provider@0.0.41)(@solana-mobile/wallet-adapter-mobile@2.2.5)(@solana/addresses@2.3.0)(@solana/keys@2.3.0)(@solana/rpc-api@2.3.0)(@solana/rpc-spec@2.3.0)(@solana/signers@2.3.0)(@solana/transactions@2.3.0)(@solana/wallet-adapter-base@0.9.27)(@solana/wallet-adapter-react@0.15.39)(@solana/wallet-adapter-walletconnect@0.1.21)(@terra-money/feather.js@3.0.0-beta.3)(@types/react@19.0.0)(axios@0.27.2)(fp-ts@2.16.11)(react-dom@19.0.0)(react@19.0.0)(starknet@6.24.1)(viem@2.38.3)(wagmi@2.18.1):
+  /@getpara/graz@2.0.0-alpha.20(@cosmjs/amino@0.36.1)(@cosmjs/cosmwasm-stargate@0.31.3)(@cosmjs/encoding@0.36.0)(@cosmjs/launchpad@0.27.1)(@cosmjs/proto-signing@0.36.0)(@cosmjs/stargate@0.36.0)(@cosmjs/tendermint-rpc@0.31.3)(@farcaster/mini-app-solana@1.1.1)(@farcaster/miniapp-sdk@0.2.1)(@farcaster/miniapp-wagmi-connector@1.1.0)(@leapwallet/cosmos-social-login-capsule-provider@0.0.41)(@solana-mobile/wallet-adapter-mobile@2.2.5)(@solana/addresses@2.3.0)(@solana/keys@2.3.0)(@solana/rpc-api@2.3.0)(@solana/rpc-spec@2.3.0)(@solana/signers@2.3.0)(@solana/transactions@2.3.0)(@solana/wallet-adapter-base@0.9.27)(@solana/wallet-adapter-react@0.15.39)(@solana/wallet-adapter-walletconnect@0.1.21)(@terra-money/feather.js@3.0.0-beta.3)(@types/react@19.0.0)(axios@0.27.2)(fp-ts@2.16.11)(react-dom@19.0.0)(react@19.0.0)(starknet@6.24.1)(viem@2.38.3)(wagmi@2.18.1):
     resolution: {integrity: sha512-4+vKuw+S4F63fg//ehLWqZoqotmBNsvDoLPVQlp3X9spx7B5vkREvdRiePCm/WsYsoMqkKgxneSCu7uL2iIZJg==}
     hasBin: true
     peerDependencies:
@@ -1900,7 +1990,7 @@ packages:
       '@cosmsnap/snapper': 0.1.29
       '@dao-dao/cosmiframe': 0.1.0(@cosmjs/amino@0.36.1)(@cosmjs/proto-signing@0.36.0)
       '@getpara/cosmjs-v0-integration': 2.0.0-alpha.64(@cosmjs/amino@0.36.1)(@cosmjs/encoding@0.36.0)(@cosmjs/proto-signing@0.36.0)(@cosmjs/stargate@0.36.0)
-      '@getpara/react-sdk': 2.0.0-alpha.64(@cosmjs/amino@0.36.1)(@cosmjs/encoding@0.36.0)(@cosmjs/proto-signing@0.36.0)(@cosmjs/stargate@0.36.0)(@getpara/graz@2.0.0-alpha.20)(@solana-mobile/wallet-adapter-mobile@2.2.5)(@solana/addresses@2.3.0)(@solana/keys@2.3.0)(@solana/rpc-api@2.3.0)(@solana/rpc-spec@2.3.0)(@solana/signers@2.3.0)(@solana/transactions@2.3.0)(@solana/wallet-adapter-base@0.9.27)(@solana/wallet-adapter-react@0.15.39)(@solana/wallet-adapter-walletconnect@0.1.21)(@tanstack/react-query@5.90.5)(@types/react@19.0.0)(fp-ts@2.16.11)(react-dom@19.0.0)(react@19.0.0)(viem@2.38.3)(wagmi@2.18.1)
+      '@getpara/react-sdk': 2.0.0-alpha.64(@cosmjs/amino@0.36.1)(@cosmjs/encoding@0.36.0)(@cosmjs/proto-signing@0.36.0)(@cosmjs/stargate@0.36.0)(@farcaster/mini-app-solana@1.1.1)(@farcaster/miniapp-sdk@0.2.1)(@farcaster/miniapp-wagmi-connector@1.1.0)(@getpara/graz@2.0.0-alpha.20)(@solana-mobile/wallet-adapter-mobile@2.2.5)(@solana/addresses@2.3.0)(@solana/keys@2.3.0)(@solana/rpc-api@2.3.0)(@solana/rpc-spec@2.3.0)(@solana/signers@2.3.0)(@solana/transactions@2.3.0)(@solana/wallet-adapter-base@0.9.27)(@solana/wallet-adapter-react@0.15.39)(@solana/wallet-adapter-walletconnect@0.1.21)(@tanstack/react-query@5.90.5)(@types/react@19.0.0)(fp-ts@2.16.11)(react-dom@19.0.0)(react@19.0.0)(viem@2.38.3)(wagmi@2.18.1)
       '@keplr-wallet/cosmos': 0.12.156(starknet@6.24.1)
       '@keplr-wallet/types': 0.12.156(starknet@6.24.1)
       '@leapwallet/cosmos-social-login-capsule-provider': 0.0.41(@cosmjs/encoding@0.36.0)(@cosmjs/proto-signing@0.36.0)(fp-ts@2.16.11)
@@ -1967,14 +2057,14 @@ packages:
       - wagmi
     dev: false
 
-  /@getpara/react-common@2.0.0-alpha.53(react-dom@19.0.0)(react@19.0.0):
+  /@getpara/react-common@2.0.0-alpha.53(@farcaster/miniapp-sdk@0.2.1)(react-dom@19.0.0)(react@19.0.0):
     resolution: {integrity: sha512-DL+ahOl7tIUqoJoLQkM1ncP+49EmfYnHe2n3rriBeFh+r2RnRS36w+M8ctV4WaaIZbHX2OcfRS4tymzr/NkmFw==}
     peerDependencies:
       react: '*'
       react-dom: '*'
     dependencies:
       '@getpara/react-components': 2.0.0-alpha.53
-      '@getpara/web-sdk': 2.0.0-alpha.53
+      '@getpara/web-sdk': 2.0.0-alpha.53(@farcaster/miniapp-sdk@0.2.1)
       '@moonpay/moonpay-react': 1.10.5(react@19.0.0)
       '@ramp-network/ramp-instant-sdk': 4.0.8
       libphonenumber-js: 1.12.24
@@ -1987,14 +2077,14 @@ packages:
       - debug
     dev: false
 
-  /@getpara/react-common@2.0.0-alpha.64(react-dom@19.0.0)(react@19.0.0):
+  /@getpara/react-common@2.0.0-alpha.64(@farcaster/miniapp-sdk@0.2.1)(react-dom@19.0.0)(react@19.0.0):
     resolution: {integrity: sha512-hOs2VQvWsLSv4O30NakimYsi/4nT8fyK3DqpxjwVQT1PZ+Es2WqPQ+wlnMzzPaoHdbjhG7BJePnYJxpMu2z9Ew==}
     peerDependencies:
       react: '*'
       react-dom: '*'
     dependencies:
       '@getpara/react-components': 2.0.0-alpha.64
-      '@getpara/web-sdk': 2.0.0-alpha.64
+      '@getpara/web-sdk': 2.0.0-alpha.64(@farcaster/miniapp-sdk@0.2.1)
       '@moonpay/moonpay-react': 1.10.5(react@19.0.0)
       '@ramp-network/ramp-instant-sdk': 4.0.8
       libphonenumber-js: 1.12.24
@@ -2019,7 +2109,7 @@ packages:
       '@getpara/core-components': 2.0.0-alpha.64
     dev: false
 
-  /@getpara/react-sdk-lite@2.0.0-alpha.53(@tanstack/react-query@5.69.0)(@types/react@19.0.0)(react-dom@19.0.0)(react@19.0.0):
+  /@getpara/react-sdk-lite@2.0.0-alpha.53(@farcaster/miniapp-sdk@0.2.1)(@tanstack/react-query@5.69.0)(@types/react@19.0.0)(react-dom@19.0.0)(react@19.0.0):
     resolution: {integrity: sha512-ae2fMo1/PQ9MNHfmZMace39myudAQ98OZxOXLfN5GWRlNGoHP3mWOKi0Vga+p8w0JNeS4nv77qiS4XOAjtjcjg==}
     hasBin: true
     peerDependencies:
@@ -2027,9 +2117,9 @@ packages:
       react: '*'
       react-dom: '*'
     dependencies:
-      '@getpara/react-common': 2.0.0-alpha.53(react-dom@19.0.0)(react@19.0.0)
+      '@getpara/react-common': 2.0.0-alpha.53(@farcaster/miniapp-sdk@0.2.1)(react-dom@19.0.0)(react@19.0.0)
       '@getpara/react-components': 2.0.0-alpha.53
-      '@getpara/web-sdk': 2.0.0-alpha.53
+      '@getpara/web-sdk': 2.0.0-alpha.53(@farcaster/miniapp-sdk@0.2.1)
       '@tanstack/react-query': 5.69.0(react@19.0.0)
       date-fns: 3.6.0
       framer-motion: 11.18.2(react-dom@19.0.0)(react@19.0.0)
@@ -2047,7 +2137,7 @@ packages:
       - immer
     dev: false
 
-  /@getpara/react-sdk-lite@2.0.0-alpha.64(@tanstack/react-query@5.90.5)(@types/react@19.0.0)(react-dom@19.0.0)(react@19.0.0):
+  /@getpara/react-sdk-lite@2.0.0-alpha.64(@farcaster/miniapp-sdk@0.2.1)(@tanstack/react-query@5.90.5)(@types/react@19.0.0)(react-dom@19.0.0)(react@19.0.0):
     resolution: {integrity: sha512-bZpdPzuWjwuYbYKDWQhdk4Rpp3735+tqEtBhEXMOfFflDGWJF7dRXQh3eVqgzEmBpeX9F5ZaEH8uqSn61lrQiA==}
     hasBin: true
     peerDependencies:
@@ -2055,9 +2145,9 @@ packages:
       react: '*'
       react-dom: '*'
     dependencies:
-      '@getpara/react-common': 2.0.0-alpha.64(react-dom@19.0.0)(react@19.0.0)
+      '@getpara/react-common': 2.0.0-alpha.64(@farcaster/miniapp-sdk@0.2.1)(react-dom@19.0.0)(react@19.0.0)
       '@getpara/react-components': 2.0.0-alpha.64
-      '@getpara/web-sdk': 2.0.0-alpha.64
+      '@getpara/web-sdk': 2.0.0-alpha.64(@farcaster/miniapp-sdk@0.2.1)
       '@tanstack/react-query': 5.90.5(react@19.0.0)
       date-fns: 3.6.0
       framer-motion: 11.18.2(react-dom@19.0.0)(react@19.0.0)
@@ -2075,7 +2165,7 @@ packages:
       - immer
     dev: false
 
-  /@getpara/react-sdk@2.0.0-alpha.53(@cosmjs/amino@0.36.1)(@cosmjs/encoding@0.36.0)(@cosmjs/proto-signing@0.36.0)(@cosmjs/stargate@0.36.0)(@getpara/graz@2.0.0-alpha.20)(@solana-mobile/wallet-adapter-mobile@2.2.5)(@solana/addresses@2.3.0)(@solana/keys@2.3.0)(@solana/rpc-api@2.3.0)(@solana/rpc-spec@2.3.0)(@solana/signers@2.3.0)(@solana/transactions@2.3.0)(@solana/wallet-adapter-base@0.9.27)(@solana/wallet-adapter-react@0.15.39)(@solana/wallet-adapter-walletconnect@0.1.21)(@tanstack/react-query@5.69.0)(@types/react@19.0.0)(fp-ts@2.16.11)(react-dom@19.0.0)(react@19.0.0)(viem@2.38.3)(wagmi@2.18.1):
+  /@getpara/react-sdk@2.0.0-alpha.53(@cosmjs/amino@0.36.1)(@cosmjs/encoding@0.36.0)(@cosmjs/proto-signing@0.36.0)(@cosmjs/stargate@0.36.0)(@farcaster/mini-app-solana@1.1.1)(@farcaster/miniapp-sdk@0.2.1)(@farcaster/miniapp-wagmi-connector@1.1.0)(@getpara/graz@2.0.0-alpha.20)(@solana-mobile/wallet-adapter-mobile@2.2.5)(@solana/addresses@2.3.0)(@solana/keys@2.3.0)(@solana/rpc-api@2.3.0)(@solana/rpc-spec@2.3.0)(@solana/signers@2.3.0)(@solana/transactions@2.3.0)(@solana/wallet-adapter-base@0.9.27)(@solana/wallet-adapter-react@0.15.39)(@solana/wallet-adapter-walletconnect@0.1.21)(@tanstack/react-query@5.69.0)(@types/react@19.0.0)(fp-ts@2.16.11)(react-dom@19.0.0)(react@19.0.0)(viem@2.38.3)(wagmi@2.18.1):
     resolution: {integrity: sha512-D3HTbW8iBEi/f2whnAsRn1xThkCHYWtBD0dKJeg+nouYIDbvUs+aFCCQpU5XQSRRNc/uZpUsG9qBTtyUko6yNA==}
     hasBin: true
     peerDependencies:
@@ -2084,11 +2174,11 @@ packages:
       react-dom: '*'
     dependencies:
       '@getpara/cosmjs-v0-integration': 2.0.0-alpha.53(@cosmjs/amino@0.36.1)(@cosmjs/encoding@0.36.0)(@cosmjs/proto-signing@0.36.0)(@cosmjs/stargate@0.36.0)
-      '@getpara/cosmos-wallet-connectors': 2.0.0-alpha.53(@cosmjs/encoding@0.36.0)(@cosmjs/proto-signing@0.36.0)(@getpara/graz@2.0.0-alpha.20)(@types/react@19.0.0)(fp-ts@2.16.11)(react-dom@19.0.0)(react@19.0.0)
-      '@getpara/evm-wallet-connectors': 2.0.0-alpha.53(@tanstack/react-query@5.69.0)(@types/react@19.0.0)(react-dom@19.0.0)(react@19.0.0)(viem@2.38.3)(wagmi@2.18.1)
-      '@getpara/react-sdk-lite': 2.0.0-alpha.53(@tanstack/react-query@5.69.0)(@types/react@19.0.0)(react-dom@19.0.0)(react@19.0.0)
+      '@getpara/cosmos-wallet-connectors': 2.0.0-alpha.53(@cosmjs/encoding@0.36.0)(@cosmjs/proto-signing@0.36.0)(@farcaster/miniapp-sdk@0.2.1)(@getpara/graz@2.0.0-alpha.20)(@types/react@19.0.0)(fp-ts@2.16.11)(react-dom@19.0.0)(react@19.0.0)
+      '@getpara/evm-wallet-connectors': 2.0.0-alpha.53(@farcaster/miniapp-sdk@0.2.1)(@farcaster/miniapp-wagmi-connector@1.1.0)(@tanstack/react-query@5.69.0)(@types/react@19.0.0)(react-dom@19.0.0)(react@19.0.0)(viem@2.38.3)(wagmi@2.18.1)
+      '@getpara/react-sdk-lite': 2.0.0-alpha.53(@farcaster/miniapp-sdk@0.2.1)(@tanstack/react-query@5.69.0)(@types/react@19.0.0)(react-dom@19.0.0)(react@19.0.0)
       '@getpara/solana-signers-v2-integration': 2.0.0-alpha.53(@solana/addresses@2.3.0)(@solana/keys@2.3.0)(@solana/rpc-api@2.3.0)(@solana/rpc-spec@2.3.0)(@solana/signers@2.3.0)(@solana/transactions@2.3.0)
-      '@getpara/solana-wallet-connectors': 2.0.0-alpha.53(@solana-mobile/wallet-adapter-mobile@2.2.5)(@solana/wallet-adapter-base@0.9.27)(@solana/wallet-adapter-react@0.15.39)(@solana/wallet-adapter-walletconnect@0.1.21)(react-dom@19.0.0)(react@19.0.0)
+      '@getpara/solana-wallet-connectors': 2.0.0-alpha.53(@farcaster/mini-app-solana@1.1.1)(@farcaster/miniapp-sdk@0.2.1)(@solana-mobile/wallet-adapter-mobile@2.2.5)(@solana/wallet-adapter-base@0.9.27)(@solana/wallet-adapter-react@0.15.39)(@solana/wallet-adapter-walletconnect@0.1.21)(react-dom@19.0.0)(react@19.0.0)
       '@getpara/viem-v2-integration': 2.0.0-alpha.53(viem@2.38.3)
       '@tanstack/react-query': 5.69.0(react@19.0.0)
       react: 19.0.0
@@ -2122,7 +2212,7 @@ packages:
       - wagmi
     dev: false
 
-  /@getpara/react-sdk@2.0.0-alpha.64(@cosmjs/amino@0.36.1)(@cosmjs/encoding@0.36.0)(@cosmjs/proto-signing@0.36.0)(@cosmjs/stargate@0.36.0)(@getpara/graz@2.0.0-alpha.20)(@solana-mobile/wallet-adapter-mobile@2.2.5)(@solana/addresses@2.3.0)(@solana/keys@2.3.0)(@solana/rpc-api@2.3.0)(@solana/rpc-spec@2.3.0)(@solana/signers@2.3.0)(@solana/transactions@2.3.0)(@solana/wallet-adapter-base@0.9.27)(@solana/wallet-adapter-react@0.15.39)(@solana/wallet-adapter-walletconnect@0.1.21)(@tanstack/react-query@5.90.5)(@types/react@19.0.0)(fp-ts@2.16.11)(react-dom@19.0.0)(react@19.0.0)(viem@2.38.3)(wagmi@2.18.1):
+  /@getpara/react-sdk@2.0.0-alpha.64(@cosmjs/amino@0.36.1)(@cosmjs/encoding@0.36.0)(@cosmjs/proto-signing@0.36.0)(@cosmjs/stargate@0.36.0)(@farcaster/mini-app-solana@1.1.1)(@farcaster/miniapp-sdk@0.2.1)(@farcaster/miniapp-wagmi-connector@1.1.0)(@getpara/graz@2.0.0-alpha.20)(@solana-mobile/wallet-adapter-mobile@2.2.5)(@solana/addresses@2.3.0)(@solana/keys@2.3.0)(@solana/rpc-api@2.3.0)(@solana/rpc-spec@2.3.0)(@solana/signers@2.3.0)(@solana/transactions@2.3.0)(@solana/wallet-adapter-base@0.9.27)(@solana/wallet-adapter-react@0.15.39)(@solana/wallet-adapter-walletconnect@0.1.21)(@tanstack/react-query@5.90.5)(@types/react@19.0.0)(fp-ts@2.16.11)(react-dom@19.0.0)(react@19.0.0)(viem@2.38.3)(wagmi@2.18.1):
     resolution: {integrity: sha512-rY0U9gQv6oarmf97jTVeeWOFUiJOGeTJisgzEjNITrX0283uGgo7GLawNXt2MR6WkmHywQrqcNeIvqO/HZdFbA==}
     hasBin: true
     peerDependencies:
@@ -2131,11 +2221,11 @@ packages:
       react-dom: '*'
     dependencies:
       '@getpara/cosmjs-v0-integration': 2.0.0-alpha.64(@cosmjs/amino@0.36.1)(@cosmjs/encoding@0.36.0)(@cosmjs/proto-signing@0.36.0)(@cosmjs/stargate@0.36.0)
-      '@getpara/cosmos-wallet-connectors': 2.0.0-alpha.64(@cosmjs/encoding@0.36.0)(@cosmjs/proto-signing@0.36.0)(@getpara/graz@2.0.0-alpha.20)(@types/react@19.0.0)(fp-ts@2.16.11)(react-dom@19.0.0)(react@19.0.0)
-      '@getpara/evm-wallet-connectors': 2.0.0-alpha.64(@tanstack/react-query@5.90.5)(@types/react@19.0.0)(react-dom@19.0.0)(react@19.0.0)(viem@2.38.3)(wagmi@2.18.1)
-      '@getpara/react-sdk-lite': 2.0.0-alpha.64(@tanstack/react-query@5.90.5)(@types/react@19.0.0)(react-dom@19.0.0)(react@19.0.0)
+      '@getpara/cosmos-wallet-connectors': 2.0.0-alpha.64(@cosmjs/encoding@0.36.0)(@cosmjs/proto-signing@0.36.0)(@farcaster/miniapp-sdk@0.2.1)(@getpara/graz@2.0.0-alpha.20)(@types/react@19.0.0)(fp-ts@2.16.11)(react-dom@19.0.0)(react@19.0.0)
+      '@getpara/evm-wallet-connectors': 2.0.0-alpha.64(@farcaster/miniapp-sdk@0.2.1)(@farcaster/miniapp-wagmi-connector@1.1.0)(@tanstack/react-query@5.90.5)(@types/react@19.0.0)(react-dom@19.0.0)(react@19.0.0)(viem@2.38.3)(wagmi@2.18.1)
+      '@getpara/react-sdk-lite': 2.0.0-alpha.64(@farcaster/miniapp-sdk@0.2.1)(@tanstack/react-query@5.90.5)(@types/react@19.0.0)(react-dom@19.0.0)(react@19.0.0)
       '@getpara/solana-signers-v2-integration': 2.0.0-alpha.64(@solana/addresses@2.3.0)(@solana/keys@2.3.0)(@solana/rpc-api@2.3.0)(@solana/rpc-spec@2.3.0)(@solana/signers@2.3.0)(@solana/transactions@2.3.0)
-      '@getpara/solana-wallet-connectors': 2.0.0-alpha.64(@solana-mobile/wallet-adapter-mobile@2.2.5)(@solana/wallet-adapter-base@0.9.27)(@solana/wallet-adapter-react@0.15.39)(@solana/wallet-adapter-walletconnect@0.1.21)(react-dom@19.0.0)(react@19.0.0)
+      '@getpara/solana-wallet-connectors': 2.0.0-alpha.64(@farcaster/mini-app-solana@1.1.1)(@farcaster/miniapp-sdk@0.2.1)(@solana-mobile/wallet-adapter-mobile@2.2.5)(@solana/wallet-adapter-base@0.9.27)(@solana/wallet-adapter-react@0.15.39)(@solana/wallet-adapter-walletconnect@0.1.21)(react-dom@19.0.0)(react@19.0.0)
       '@getpara/viem-v2-integration': 2.0.0-alpha.64(viem@2.38.3)
       '@tanstack/react-query': 5.90.5(react@19.0.0)
       react: 19.0.0
@@ -2221,7 +2311,7 @@ packages:
       - debug
     dev: false
 
-  /@getpara/solana-wallet-connectors@2.0.0-alpha.53(@solana-mobile/wallet-adapter-mobile@2.2.5)(@solana/wallet-adapter-base@0.9.27)(@solana/wallet-adapter-react@0.15.39)(@solana/wallet-adapter-walletconnect@0.1.21)(react-dom@19.0.0)(react@19.0.0):
+  /@getpara/solana-wallet-connectors@2.0.0-alpha.53(@farcaster/mini-app-solana@1.1.1)(@farcaster/miniapp-sdk@0.2.1)(@solana-mobile/wallet-adapter-mobile@2.2.5)(@solana/wallet-adapter-base@0.9.27)(@solana/wallet-adapter-react@0.15.39)(@solana/wallet-adapter-walletconnect@0.1.21)(react-dom@19.0.0)(react@19.0.0):
     resolution: {integrity: sha512-lWqYPOw3WW/39DdVbbq6+8pGrpzNysPl+XLhLTSiQ77jZuN67qGi875aS54SI/dg0iSoh/olcmPrSPFJwle1EQ==}
     peerDependencies:
       '@farcaster/mini-app-solana': ^1.0.0
@@ -2235,8 +2325,9 @@ packages:
       '@farcaster/mini-app-solana':
         optional: true
     dependencies:
-      '@getpara/react-common': 2.0.0-alpha.53(react-dom@19.0.0)(react@19.0.0)
-      '@getpara/web-sdk': 2.0.0-alpha.53
+      '@farcaster/mini-app-solana': 1.1.1(@farcaster/miniapp-sdk@0.2.1)(@solana/wallet-adapter-base@0.9.27)(@solana/wallet-adapter-react@0.15.39)(react@19.0.0)(typescript@5.8.2)
+      '@getpara/react-common': 2.0.0-alpha.53(@farcaster/miniapp-sdk@0.2.1)(react-dom@19.0.0)(react@19.0.0)
+      '@getpara/web-sdk': 2.0.0-alpha.53(@farcaster/miniapp-sdk@0.2.1)
       '@solana-mobile/wallet-adapter-mobile': 2.2.5(@solana/web3.js@1.98.4)(fastestsmallesttextencoderdecoder@1.0.22)(react-native@0.82.0)(react@19.0.0)(typescript@5.8.2)
       '@solana/wallet-adapter-base': 0.9.27(@solana/web3.js@1.98.4)
       '@solana/wallet-adapter-react': 0.15.39(@solana/web3.js@1.98.4)(bs58@6.0.0)(fastestsmallesttextencoderdecoder@1.0.22)(react-native@0.82.0)(react@19.0.0)(typescript@5.8.2)
@@ -2249,7 +2340,7 @@ packages:
       - debug
     dev: false
 
-  /@getpara/solana-wallet-connectors@2.0.0-alpha.64(@solana-mobile/wallet-adapter-mobile@2.2.5)(@solana/wallet-adapter-base@0.9.27)(@solana/wallet-adapter-react@0.15.39)(@solana/wallet-adapter-walletconnect@0.1.21)(react-dom@19.0.0)(react@19.0.0):
+  /@getpara/solana-wallet-connectors@2.0.0-alpha.64(@farcaster/mini-app-solana@1.1.1)(@farcaster/miniapp-sdk@0.2.1)(@solana-mobile/wallet-adapter-mobile@2.2.5)(@solana/wallet-adapter-base@0.9.27)(@solana/wallet-adapter-react@0.15.39)(@solana/wallet-adapter-walletconnect@0.1.21)(react-dom@19.0.0)(react@19.0.0):
     resolution: {integrity: sha512-uDBAR/aI6l1v6YTbqCaweI+gPGJUB9ha5lpb9nKRtEZh3NwoNPlTWpwVKTZ+LWS+6wnI+5iuctTfjla9tq8x6w==}
     peerDependencies:
       '@farcaster/mini-app-solana': ^1.0.0
@@ -2263,8 +2354,9 @@ packages:
       '@farcaster/mini-app-solana':
         optional: true
     dependencies:
-      '@getpara/react-common': 2.0.0-alpha.64(react-dom@19.0.0)(react@19.0.0)
-      '@getpara/web-sdk': 2.0.0-alpha.64
+      '@farcaster/mini-app-solana': 1.1.1(@farcaster/miniapp-sdk@0.2.1)(@solana/wallet-adapter-base@0.9.27)(@solana/wallet-adapter-react@0.15.39)(react@19.0.0)(typescript@5.8.2)
+      '@getpara/react-common': 2.0.0-alpha.64(@farcaster/miniapp-sdk@0.2.1)(react-dom@19.0.0)(react@19.0.0)
+      '@getpara/web-sdk': 2.0.0-alpha.64(@farcaster/miniapp-sdk@0.2.1)
       '@solana-mobile/wallet-adapter-mobile': 2.2.5(@solana/web3.js@1.98.4)(fastestsmallesttextencoderdecoder@1.0.22)(react-native@0.82.0)(react@19.0.0)(typescript@5.8.2)
       '@solana/wallet-adapter-base': 0.9.27(@solana/web3.js@1.98.4)
       '@solana/wallet-adapter-react': 0.15.39(@solana/web3.js@1.98.4)(bs58@6.0.0)(fastestsmallesttextencoderdecoder@1.0.22)(react-native@0.82.0)(react@19.0.0)(typescript@5.8.2)
@@ -2319,7 +2411,7 @@ packages:
       - debug
     dev: false
 
-  /@getpara/wagmi-v2-connector@2.0.0-alpha.53(react-dom@19.0.0)(react@19.0.0)(viem@2.38.3)(wagmi@2.18.1):
+  /@getpara/wagmi-v2-connector@2.0.0-alpha.53(@farcaster/miniapp-sdk@0.2.1)(react-dom@19.0.0)(react@19.0.0)(viem@2.38.3)(wagmi@2.18.1):
     resolution: {integrity: sha512-9E4d7ybc0v2sxOom1sonxhEpBGgZ8Y4D7a/rPIJGpTjqpMLwZGCe3MrGCKQPWNaCgYZobKd7j23s2JKZYiBVCA==}
     peerDependencies:
       react: '*'
@@ -2328,7 +2420,7 @@ packages:
       wagmi: ^2.9.0
     dependencies:
       '@getpara/viem-v2-integration': 2.0.0-alpha.53(viem@2.38.3)
-      '@getpara/web-sdk': 2.0.0-alpha.53
+      '@getpara/web-sdk': 2.0.0-alpha.53(@farcaster/miniapp-sdk@0.2.1)
       react: 19.0.0
       react-dom: 19.0.0(react@19.0.0)
       viem: 2.38.3(typescript@5.8.2)(zod@3.24.2)
@@ -2338,7 +2430,7 @@ packages:
       - debug
     dev: false
 
-  /@getpara/wagmi-v2-connector@2.0.0-alpha.64(react-dom@19.0.0)(react@19.0.0)(viem@2.38.3)(wagmi@2.18.1):
+  /@getpara/wagmi-v2-connector@2.0.0-alpha.64(@farcaster/miniapp-sdk@0.2.1)(react-dom@19.0.0)(react@19.0.0)(viem@2.38.3)(wagmi@2.18.1):
     resolution: {integrity: sha512-PFcNNMOkPiFQKRrJREGBVCrXCwjMolR6gJe4d2rMlptzv6+lxGlTJdWC0OvWXcLZZ1Fzw1rz6OrLSYj8GDjKgA==}
     peerDependencies:
       react: '*'
@@ -2347,7 +2439,7 @@ packages:
       wagmi: ^2.9.0
     dependencies:
       '@getpara/viem-v2-integration': 2.0.0-alpha.64(viem@2.38.3)
-      '@getpara/web-sdk': 2.0.0-alpha.64
+      '@getpara/web-sdk': 2.0.0-alpha.64(@farcaster/miniapp-sdk@0.2.1)
       react: 19.0.0
       react-dom: 19.0.0(react@19.0.0)
       viem: 2.38.3(typescript@5.8.2)(zod@3.24.2)
@@ -2357,7 +2449,7 @@ packages:
       - debug
     dev: false
 
-  /@getpara/web-sdk@2.0.0-alpha.53:
+  /@getpara/web-sdk@2.0.0-alpha.53(@farcaster/miniapp-sdk@0.2.1):
     resolution: {integrity: sha512-dnhZO9FanVuVSCjdLbRASMKnMlt8bi+UHlz6iSaMhQmsB50f/SP46jEwx19Qs6WyhEdso6z0uRqnw2RYzN+B0Q==}
     peerDependencies:
       '@farcaster/miniapp-sdk': ^0.1.2
@@ -2365,6 +2457,7 @@ packages:
       '@farcaster/miniapp-sdk':
         optional: true
     dependencies:
+      '@farcaster/miniapp-sdk': 0.2.1(typescript@5.8.2)(zod@3.24.2)
       '@getpara/core-sdk': 2.0.0-alpha.53
       '@getpara/user-management-client': 2.0.0-alpha.53
       base64url: 3.0.1
@@ -2376,7 +2469,7 @@ packages:
       - debug
     dev: false
 
-  /@getpara/web-sdk@2.0.0-alpha.64:
+  /@getpara/web-sdk@2.0.0-alpha.64(@farcaster/miniapp-sdk@0.2.1):
     resolution: {integrity: sha512-gm7i91MhWYBTTVnXnb9V4vs/2gbI7N3B5D/puGxVN9VnGyTtT5jbVR66IPDuiUSzQSvWV8AJajCUXX1lDRCXLQ==}
     peerDependencies:
       '@farcaster/miniapp-sdk': ^0.1.2
@@ -2384,6 +2477,7 @@ packages:
       '@farcaster/miniapp-sdk':
         optional: true
     dependencies:
+      '@farcaster/miniapp-sdk': 0.2.1(typescript@5.8.2)(zod@3.24.2)
       '@getpara/core-sdk': 2.0.0-alpha.64
       '@getpara/user-management-client': 2.0.0-alpha.64
       base64url: 3.0.1
@@ -5539,7 +5633,7 @@ packages:
     resolution: {integrity: sha512-qwQgQqXXTRv2h2AlJef+tMEszLFkCB9dWnrJYIdAwqjubERXEc/geB+S3apRw0yQyTVnsBf8r6BhlrE8vx+3WQ==}
     dependencies:
       '@types/bn.js': 5.2.0
-      '@types/node': 20.14.10
+      '@types/node': 20.19.22
     dev: false
 
   /@types/graceful-fs@4.1.9:
@@ -5616,7 +5710,7 @@ packages:
   /@types/pbkdf2@3.1.2:
     resolution: {integrity: sha512-uRwJqmiXmh9++aSu1VNEn3iIxWOhd8AHXNSdlaLfdAAdSTY9jYVeGWnzejM3dvrkbqE3/hyQkQQ29IFATEGlew==}
     dependencies:
-      '@types/node': 20.14.10
+      '@types/node': 20.19.22
     dev: false
 
   /@types/react-dom@19.0.0:
@@ -5633,7 +5727,7 @@ packages:
   /@types/secp256k1@4.0.7:
     resolution: {integrity: sha512-Rcvjl6vARGAKRO6jHeKMatGrvOMGrR/AR11N1x2LqintPCyDZ7NBhrh238Z2VZc7aM7KIwnFpFQ7fnfK4H/9Qw==}
     dependencies:
-      '@types/node': 20.14.10
+      '@types/node': 20.19.22
     dev: false
 
   /@types/stack-utils@2.0.3:
@@ -7639,6 +7733,21 @@ packages:
       zod: 3.24.2
     dev: false
 
+  /abitype@1.1.1(typescript@5.8.2)(zod@3.25.76):
+    resolution: {integrity: sha512-Loe5/6tAgsBukY95eGaPSDmQHIjRZYQq8PB1MpsNccDIK8WiV+Uw6WzaIXipvaxTEL2yEB0OpEaQv3gs8pkS9Q==}
+    peerDependencies:
+      typescript: '>=5.0.4'
+      zod: ^3.22.0 || ^4.0.0
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+      zod:
+        optional: true
+    dependencies:
+      typescript: 5.8.2
+      zod: 3.25.76
+    dev: false
+
   /abitype@1.1.1(typescript@5.8.2)(zod@4.1.12):
     resolution: {integrity: sha512-Loe5/6tAgsBukY95eGaPSDmQHIjRZYQq8PB1MpsNccDIK8WiV+Uw6WzaIXipvaxTEL2yEB0OpEaQv3gs8pkS9Q==}
     peerDependencies:
@@ -8478,11 +8587,19 @@ packages:
     dev: false
     optional: true
 
+  /colorette@2.0.20:
+    resolution: {integrity: sha512-IfEDxwoWIjkeXL1eXcDiow4UbKjhLdq6/EuSVR9GMN7KVH3r9gQ83e73hsz1Nd1T3ijd5xv1wcWRYO+D6kCI2w==}
+    dev: false
+
   /combined-stream@1.0.8:
     resolution: {integrity: sha512-FQN4MRfuJeHf7cBbBMJFXhKSDq+2kAArBlmRBvcvFE5BB1HZKXtSFASDhdlz9zOYwxh8lDdnvmMOe/+5cdoEdg==}
     engines: {node: '>= 0.8'}
     dependencies:
       delayed-stream: 1.0.0
+    dev: false
+
+  /comlink@4.4.2:
+    resolution: {integrity: sha512-OxGdvBmJuNKSCMO4NTl1L47VRp6xn2wG4F/2hYzB6tiCb709otOxtEYCSvK80PtjODfXXZu8ds+Nw5kVCjqd2g==}
     dev: false
 
   /commander@12.1.0:
@@ -8716,6 +8833,10 @@ packages:
 
   /date-fns@3.6.0:
     resolution: {integrity: sha512-fRHTG8g/Gif+kSh50gaGEdToemgfj74aRX3swtiouboip5JDLAyDE9F11nHMIcvOaXeOC6D7SpNhi7uFyB7Uww==}
+    dev: false
+
+  /dateformat@4.6.3:
+    resolution: {integrity: sha512-2P0p0pFGzHS5EMnhdxQi7aJN+iMheud0UhG4dlE1DLAlvL8JHjJJTX/CSm4JXwV0Ka5nGk3zC5mcb5bUQUxxMA==}
     dev: false
 
   /dayjs@1.11.13:
@@ -9700,6 +9821,10 @@ packages:
     engines: {node: '> 0.1.90'}
     dev: false
 
+  /fast-copy@3.0.2:
+    resolution: {integrity: sha512-dl0O9Vhju8IrcLndv2eU4ldt1ftXMqqfgN4H1cpmGV7P6jeB9FwpN9a2c8DPGE1Ys88rNUJVYDHq73CGAGOPfQ==}
+    dev: false
+
   /fast-deep-equal@3.1.3:
     resolution: {integrity: sha512-f3qQ9oQy9j2AhBe/H9VC91wLmKBCCU/gDOnKNAYG5hswO7BLKj09Hc5HYNz9cGI++xlpDCIgDaitVs03ATR84Q==}
 
@@ -10157,6 +10282,10 @@ packages:
     engines: {node: '>= 0.4'}
     dependencies:
       function-bind: 1.1.2
+
+  /help-me@5.0.0:
+    resolution: {integrity: sha512-7xgomUX6ADmcYzFik0HzAxh/73YlKR9bmFzf51CZwR+b6YtzU2m0u49hQCqV6SvlqIqsaxovfwdvbnsw3b/zpg==}
+    dev: false
 
   /hermes-compiler@0.0.0:
     resolution: {integrity: sha512-boVFutx6ME/Km2mB6vvsQcdnazEYYI/jV1pomx1wcFUG/EVqTkr5CU0CW9bKipOA/8Hyu3NYwW3THg2Q1kNCfA==}
@@ -10771,6 +10900,11 @@ packages:
 
   /jose@5.10.0:
     resolution: {integrity: sha512-s+3Al/p9g32Iq+oqXxkW//7jk2Vig6FF1CFqzVXoTUXt2qz89YWbL+OwS17NFYEvxC35n0FKeGO2LGYSxeM2Gg==}
+    dev: false
+
+  /joycon@3.1.1:
+    resolution: {integrity: sha512-34wB/Y7MW7bzjKRjUKTa46I2Z7eV62Rkhva+KkopW7Qvv/OSWBqvkSY7vusOPrNuZcUG3tApvdVgNB8POj3SPw==}
+    engines: {node: '>=10'}
     dev: false
 
   /js-base64@3.7.8:
@@ -11527,7 +11661,6 @@ packages:
 
   /minimist@1.2.8:
     resolution: {integrity: sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==}
-    dev: true
 
   /mipd@0.0.7(typescript@5.8.2):
     resolution: {integrity: sha512-aAPZPNDQ3uMTdKbuO2YmAw2TxLHO0moa4YKAyETM/DTj5FloZo+a+8tU+iv4GmW+sOxKLSRwcSFuczk+Cpt6fg==}
@@ -11836,6 +11969,11 @@ packages:
     resolution: {integrity: sha512-dqaz3u44QbRXQooZLTUKU41ZrzYrcvLISVgbrzbyCMxpmSLJvZ3ZamIJIZ29P6OhZIkNIQKosdeM6t1LYbA9hg==}
     dev: false
 
+  /on-exit-leak-free@2.1.2:
+    resolution: {integrity: sha512-0eJJY6hXLGf1udHwfNftBqH+g73EU4B504nZeKpz1sYRKafAghwxEJunB2O7rDZkL4PGfsMVnTXZ2EjibbqcsA==}
+    engines: {node: '>=14.0.0'}
+    dev: false
+
   /on-finished@2.3.0:
     resolution: {integrity: sha512-ikqdkGAAyf/X/gPhXGvfgAytDZtDbr+bkNUJ0N9h5MI/dmdgCs3l6hoHrcUv41sRKew3jIwrp4qQDXiK99Utww==}
     engines: {node: '>= 0.8'}
@@ -11894,6 +12032,46 @@ packages:
       object-keys: 1.1.1
       safe-push-apply: 1.0.0
     dev: true
+
+  /ox@0.4.4(typescript@5.8.2)(zod@3.24.2):
+    resolution: {integrity: sha512-oJPEeCDs9iNiPs6J0rTx+Y0KGeCGyCAA3zo94yZhm8G5WpOxrwUtn2Ie/Y8IyARSqqY/j9JTKA3Fc1xs1DvFnw==}
+    peerDependencies:
+      typescript: '>=5.4.0'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+    dependencies:
+      '@adraffy/ens-normalize': 1.11.1
+      '@noble/curves': 1.9.7
+      '@noble/hashes': 1.8.0
+      '@scure/bip32': 1.7.0
+      '@scure/bip39': 1.6.0
+      abitype: 1.1.1(typescript@5.8.2)(zod@3.24.2)
+      eventemitter3: 5.0.1
+      typescript: 5.8.2
+    transitivePeerDependencies:
+      - zod
+    dev: false
+
+  /ox@0.4.4(typescript@5.8.2)(zod@3.25.76):
+    resolution: {integrity: sha512-oJPEeCDs9iNiPs6J0rTx+Y0KGeCGyCAA3zo94yZhm8G5WpOxrwUtn2Ie/Y8IyARSqqY/j9JTKA3Fc1xs1DvFnw==}
+    peerDependencies:
+      typescript: '>=5.4.0'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+    dependencies:
+      '@adraffy/ens-normalize': 1.11.1
+      '@noble/curves': 1.9.7
+      '@noble/hashes': 1.8.0
+      '@scure/bip32': 1.7.0
+      '@scure/bip39': 1.6.0
+      abitype: 1.1.1(typescript@5.8.2)(zod@3.25.76)
+      eventemitter3: 5.0.1
+      typescript: 5.8.2
+    transitivePeerDependencies:
+      - zod
+    dev: false
 
   /ox@0.6.7(typescript@5.8.2)(zod@3.24.2):
     resolution: {integrity: sha512-17Gk/eFsFRAZ80p5eKqv89a57uXjd3NgIf1CaXojATPBuujVc/fQSVhBeAU9JCRB+k7J50WQAyWTxK19T9GgbA==}
@@ -12118,6 +12296,31 @@ packages:
     dependencies:
       duplexify: 4.1.3
       split2: 4.2.0
+    dev: false
+
+  /pino-abstract-transport@2.0.0:
+    resolution: {integrity: sha512-F63x5tizV6WCh4R6RHyi2Ml+M70DNRXt/+HANowMflpgGFMAym/VKm6G7ZOQRjqN7XbGxK1Lg9t6ZrtzOaivMw==}
+    dependencies:
+      split2: 4.2.0
+    dev: false
+
+  /pino-pretty@13.1.2:
+    resolution: {integrity: sha512-3cN0tCakkT4f3zo9RXDIhy6GTvtYD6bK4CRBLN9j3E/ePqN1tugAXD5rGVfoChW6s0hiek+eyYlLNqc/BG7vBQ==}
+    hasBin: true
+    dependencies:
+      colorette: 2.0.20
+      dateformat: 4.6.3
+      fast-copy: 3.0.2
+      fast-safe-stringify: 2.1.1
+      help-me: 5.0.0
+      joycon: 3.1.1
+      minimist: 1.2.8
+      on-exit-leak-free: 2.1.2
+      pino-abstract-transport: 2.0.0
+      pump: 3.0.3
+      secure-json-parse: 4.1.0
+      sonic-boom: 4.2.0
+      strip-json-comments: 5.0.3
     dev: false
 
   /pino-std-serializers@4.0.0:
@@ -12394,7 +12597,7 @@ packages:
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
       '@types/long': 4.0.2
-      '@types/node': 20.14.10
+      '@types/node': 20.19.22
       long: 4.0.0
     dev: false
 
@@ -12858,6 +13061,10 @@ packages:
       node-gyp-build: 4.8.4
     dev: false
 
+  /secure-json-parse@4.1.0:
+    resolution: {integrity: sha512-l4KnYfEyqYJxDwlNVyRfO2E4NTHfMKAWdUuA8J0yve2Dz/E/PdBepY03RvyJpssIpRFwJoCD55wA+mEDs6ByWA==}
+    dev: false
+
   /semver@6.3.1:
     resolution: {integrity: sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA==}
     hasBin: true
@@ -13113,6 +13320,12 @@ packages:
       atomic-sleep: 1.0.0
     dev: false
 
+  /sonic-boom@4.2.0:
+    resolution: {integrity: sha512-INb7TM37/mAcsGmc9hyyI6+QR3rR1zVRu36B0NeGXKnOOLiZOfER5SA+N7X7k3yUYRzLWafduTDvJAfDswwEww==}
+    dependencies:
+      atomic-sleep: 1.0.0
+    dev: false
+
   /source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
     engines: {node: '>=0.10.0'}
@@ -13344,6 +13557,11 @@ packages:
     resolution: {integrity: sha512-6fPc+R4ihwqP6N/aIv2f1gMH8lOVtWQHoqC4yK6oSDVVocumAsfCqjkXnqiYMhmMwS/mEHLp7Vehlt3ql6lEig==}
     engines: {node: '>=8'}
     dev: true
+
+  /strip-json-comments@5.0.3:
+    resolution: {integrity: sha512-1tB5mhVo7U+ETBKNf92xT4hrQa3pm0MZ0PQvuDnWgAAGHDsfp4lPSpiS6psrSiet87wyGPh9ft6wmhOMQ0hDiw==}
+    engines: {node: '>=14.16'}
+    dev: false
 
   /styled-components@6.1.19(react-dom@19.0.0)(react@19.0.0):
     resolution: {integrity: sha512-1v/e3Dl1BknC37cXMhwGomhO8AkYmN41CqyX9xhUDxry1ns3BFQy2lLDRQXJRdVVWB9OHemv/53xaStimvWyuA==}
@@ -14477,6 +14695,10 @@ packages:
 
   /zod@3.24.2:
     resolution: {integrity: sha512-lY7CDW43ECgW9u1TcT3IoXHflywfVqDYze4waEz812jR/bZ8FHDsl7pFQoSZTz5N+2NqRXs8GBwnAwo3ZNxqhQ==}
+    dev: false
+
+  /zod@3.25.76:
+    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
     dev: false
 
   /zod@4.1.12:

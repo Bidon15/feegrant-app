@@ -61,7 +61,7 @@ export async function grantFeeAllowance(address: string) {
       console.log(`✅ Fee allowance already exists, updating database and returning`);
 
       // Update database to reflect existing allowance (OnChainDB)
-      await db.update('addresses',
+      await db.updateDocument('addresses',
         { bech32: address },
         {
           hasFeeGrant: true,
@@ -100,7 +100,7 @@ export async function grantFeeAllowance(address: string) {
   }
 
   // Update database to track fee grant (OnChainDB)
-  await db.update('addresses',
+  await db.updateDocument('addresses',
     { bech32: address },
     {
       hasFeeGrant: true,

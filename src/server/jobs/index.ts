@@ -11,7 +11,7 @@ export async function executeDustJob(address: string): Promise<{ txHash: string 
     const result = await sendDust(address);
 
     // Log successful execution (OnChainDB)
-    await db.create('job_logs', {
+    await db.createDocument('job_logs', {
       jobName: "dust.send",
       payload: { address },
       status: "completed",
@@ -21,7 +21,7 @@ export async function executeDustJob(address: string): Promise<{ txHash: string 
     return result;
   } catch (error) {
     // Log failed execution (OnChainDB)
-    await db.create('job_logs', {
+    await db.createDocument('job_logs', {
       jobName: "dust.send",
       payload: { address },
       status: "failed",
@@ -38,7 +38,7 @@ export async function executeFeegrantJob(address: string): Promise<{ txHash: str
     const result = await grantFeeAllowance(address);
 
     // Log successful execution (OnChainDB)
-    await db.create('job_logs', {
+    await db.createDocument('job_logs', {
       jobName: "feegrant.grant",
       payload: { address },
       status: "completed",
@@ -48,7 +48,7 @@ export async function executeFeegrantJob(address: string): Promise<{ txHash: str
     return result;
   } catch (error) {
     // Log failed execution (OnChainDB)
-    await db.create('job_logs', {
+    await db.createDocument('job_logs', {
       jobName: "feegrant.grant",
       payload: { address },
       status: "failed",
