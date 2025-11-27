@@ -1,14 +1,17 @@
-import { db } from "~/server/db";
+import { db, COLLECTIONS, nowISO, type Address } from "~/server/db";
 import { getCelestiaClient } from "~/server/celestia/client";
 import { MsgGrantAllowance } from "cosmjs-types/cosmos/feegrant/v1beta1/tx";
-import { BasicAllowance, AllowedMsgAllowance } from "cosmjs-types/cosmos/feegrant/v1beta1/feegrant";
+import {
+  BasicAllowance,
+  AllowedMsgAllowance,
+} from "cosmjs-types/cosmos/feegrant/v1beta1/feegrant";
 import { Any } from "cosmjs-types/google/protobuf/any";
 
 export async function grantFeeAllowance(address: string) {
   const { client, address: backendAddr } = await getCelestiaClient();
-  
-  console.log(`🔍 Granting fee allowance from ${backendAddr} to ${address}`);
-  
+
+  console.log(`Granting fee allowance from ${backendAddr} to ${address}`);
+
   // Validate addresses are not empty
   if (!backendAddr) {
     throw new Error("Backend address is empty");
@@ -16,7 +19,7 @@ export async function grantFeeAllowance(address: string) {
   if (!address) {
     throw new Error("Grantee address is empty");
   }
-  
+
   // Create AllowedMsgAllowance that explicitly allows authz messages
   const basicAllowance = BasicAllowance.fromPartial({
     spendLimit: [{ denom: "utia", amount: "1000000" }], // 1 TIA = 1,000,000 utia (matching CLI)
@@ -33,12 +36,12 @@ export async function grantFeeAllowance(address: string) {
       "/celestia.blob.v1.MsgPayForBlobs", // Also allow PFB messages
     ],
   });
-  
+
   const allowanceAny = Any.fromPartial({
     typeUrl: "/cosmos.feegrant.v1beta1.AllowedMsgAllowance",
     value: AllowedMsgAllowance.encode(allowedMsgAllowance).finish(),
   });
-  
+
   const msgGrantAllowance = MsgGrantAllowance.fromPartial({
     granter: backendAddr,
     grantee: address,
@@ -52,27 +55,39 @@ export async function grantFeeAllowance(address: string) {
 
   // Try simulation first to check if allowance already exists
   try {
-    console.log(`🔍 Simulating transaction to check for existing allowance...`);
-    await client.simulate(backendAddr, [msgGrantAllowanceEncodeObject], "Grant fee allowance simulation");
-    console.log(`✅ Simulation successful, proceeding with transaction`);
+    console.log(`Simulating transaction to check for existing allowance...`);
+    await client.simulate(
+      backendAddr,
+      [msgGrantAllowanceEncodeObject],
+      "Grant fee allowance simulation"
+    );
+    console.log(`Simulation successful, proceeding with transaction`);
   } catch (simError: unknown) {
-    if (simError instanceof Error && simError.message?.includes("fee allowance already exists")) {
-      console.log(`✅ Fee allowance already exists, updating database and returning`);
-      
+    if (
+      simError instanceof Error &&
+      simError.message?.includes("fee allowance already exists")
+    ) {
+      console.log(
+        `Fee allowance already exists, updating database and returning`
+      );
+
       // Update database to reflect existing allowance
-      await db.address.update({
-        where: { bech32: address },
-        data: { 
+      await db.updateDocument<Address>(
+        COLLECTIONS.addresses,
+        { bech32: address },
+        {
           hasFeeGrant: true,
           feeAllowanceRemaining: "1000000", // Assume 1 TIA remaining
-        },
-      });
-      
-      
+          updatedAt: nowISO(),
+        }
+      );
+
       return { txHash: "existing_allowance" };
     } else {
-      console.error(`❌ Simulation failed with unexpected error:`, simError);
-      throw new Error(`Transaction simulation failed: ${simError instanceof Error ? simError.message : String(simError)}`);
+      console.error(`Simulation failed with unexpected error:`, simError);
+      throw new Error(
+        `Transaction simulation failed: ${simError instanceof Error ? simError.message : String(simError)}`
+      );
     }
   }
 
@@ -82,7 +97,7 @@ export async function grantFeeAllowance(address: string) {
     gas: "210000", // Match CLI gas
   };
 
-  console.log(`🔍 Broadcasting feegrant transaction...`);
+  console.log(`Broadcasting feegrant transaction...`);
 
   const res = await client.signAndBroadcast(
     backendAddr,
@@ -90,23 +105,26 @@ export async function grantFeeAllowance(address: string) {
     fee,
     "Grant fee allowance for transactions"
   );
-  
-  console.log(`✅ Transaction broadcast result: code=${res.code}, hash=${res.transactionHash}`);
-  
+
+  console.log(
+    `Transaction broadcast result: code=${res.code}, hash=${res.transactionHash}`
+  );
+
   if (res.code !== 0) {
-    console.error(`❌ Transaction failed: code=${res.code}, log=${res.rawLog}`);
+    console.error(`Transaction failed: code=${res.code}, log=${res.rawLog}`);
     throw new Error(`Fee grant failed: code=${res.code} log=${res.rawLog}`);
   }
-  
+
   // Update database to track fee grant (use actual amount granted)
-  await db.address.update({
-    where: { bech32: address },
-    data: { 
+  await db.updateDocument<Address>(
+    COLLECTIONS.addresses,
+    { bech32: address },
+    {
       hasFeeGrant: true,
       feeAllowanceRemaining: "1000000", // 1 TIA in utia (matching our grant amount)
-    },
-  });
-  
-  
+      updatedAt: nowISO(),
+    }
+  );
+
   return { txHash: res.transactionHash };
 }

@@ -1,34 +1,40 @@
-import { db } from "~/server/db";
+import { db, COLLECTIONS, nowISO, type Address } from "~/server/db";
 import { getCelestiaClient } from "~/server/celestia/client";
 
 export async function sendDust(address: string) {
-  const addr = await db.address.findUnique({ where: { bech32: address } });
+  const addr = await db.findUnique<Address>(COLLECTIONS.addresses, {
+    bech32: address,
+  });
   if (!addr || addr.isDusted) return { txHash: "already-dusted" };
 
   const { client, address: backendAddr } = await getCelestiaClient();
-  
+
   // Add validation to ensure addresses are not empty
   if (!backendAddr) {
-    throw new Error("Backend address is empty - check MOCHA_RECOVERY_WALLET environment variable");
+    throw new Error(
+      "Backend address is empty - check MOCHA_RECOVERY_WALLET environment variable"
+    );
   }
-  
+
   if (!address) {
     throw new Error("Target address is empty");
   }
 
-  console.log(`🔄 Sending dust from ${backendAddr} to ${address}`);
-  
+  console.log(`Sending dust from ${backendAddr} to ${address}`);
+
   const res = await client.sendTokens(
-    backendAddr, 
-    address, 
-    [{ denom: "utia", amount: "2000" }], 
+    backendAddr,
+    address,
+    [{ denom: "utia", amount: "2000" }],
     "auto"
   );
 
-  await db.address.update({ 
-    where: { bech32: address }, 
-    data: { isDusted: true } 
-  });
+  // Update address to mark as dusted
+  await db.updateDocument<Address>(
+    COLLECTIONS.addresses,
+    { bech32: address },
+    { isDusted: true, updatedAt: nowISO() }
+  );
 
   return { txHash: res.transactionHash };
 }

@@ -11,20 +11,24 @@ export const env = createEnv({
       process.env.NODE_ENV === "production"
         ? z.string()
         : z.string().optional(),
-    DATABASE_URL: z.string().url(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
-    
+
     // GitHub OAuth
     GITHUB_ID: z.string(),
     GITHUB_SECRET: z.string(),
-    
+
     // Celestia-specific environment variables
     QUICKNODE_RPC: z.string().url(),
     MOCHA_RECOVERY_WALLET: z.string(),
     CELESTIA_CHAIN_ID: z.string().default("mocha-4"),
     COMMIT_URL: z.string().url(),
+
+    // OnChainDB configuration (optional while disabled)
+    ONCHAINDB_ENDPOINT: z.string().url().optional(),
+    ONCHAINDB_APP_ID: z.string().optional(),
+    ONCHAINDB_APP_KEY: z.string().optional(),
   },
 
   /**
@@ -33,7 +37,6 @@ export const env = createEnv({
    * `NEXT_PUBLIC_`.
    */
   client: {
-    NEXT_PUBLIC_PARA_API_KEY: z.string(),
     NEXT_PUBLIC_RPC_ENDPOINT: z.string().url(),
   },
 
@@ -43,7 +46,6 @@ export const env = createEnv({
    */
   runtimeEnv: {
     AUTH_SECRET: process.env.AUTH_SECRET,
-    DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
     GITHUB_ID: process.env.GITHUB_ID,
     GITHUB_SECRET: process.env.GITHUB_SECRET,
@@ -51,7 +53,9 @@ export const env = createEnv({
     MOCHA_RECOVERY_WALLET: process.env.MOCHA_RECOVERY_WALLET,
     CELESTIA_CHAIN_ID: process.env.CELESTIA_CHAIN_ID,
     COMMIT_URL: process.env.COMMIT_URL,
-    NEXT_PUBLIC_PARA_API_KEY: process.env.NEXT_PUBLIC_PARA_API_KEY,
+    ONCHAINDB_ENDPOINT: process.env.ONCHAINDB_ENDPOINT,
+    ONCHAINDB_APP_ID: process.env.ONCHAINDB_APP_ID,
+    ONCHAINDB_APP_KEY: process.env.ONCHAINDB_APP_KEY,
     NEXT_PUBLIC_RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_ENDPOINT,
   },
   /**

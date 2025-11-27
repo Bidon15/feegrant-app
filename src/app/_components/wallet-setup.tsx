@@ -16,7 +16,7 @@ export function WalletSetup() {
     onSuccess: (result) => {
       setSuccess(`Dusting ${result.message}. Transaction: ${result.txHash}`);
       setError(null);
-      utils.user.me.invalidate();
+      void utils.user.me.invalidate();
     },
     onError: (error) => {
       setError(error.message);
@@ -29,7 +29,7 @@ export function WalletSetup() {
     onSuccess: (result) => {
       setSuccess(`Fee allowance ${result.message}. Transaction: ${result.txHash}`);
       setError(null);
-      utils.user.me.invalidate();
+      void utils.user.me.invalidate();
     },
     onError: (error) => {
       setError(error.message);
@@ -51,7 +51,7 @@ export function WalletSetup() {
       await dustMutation.mutateAsync({
         address: user.address.bech32,
       });
-    } catch (err) {
+    } catch {
       // Error handled by mutation
     } finally {
       setIsDusting(false);
@@ -73,7 +73,7 @@ export function WalletSetup() {
       await grantFeeAllowanceMutation.mutateAsync({
         address: user.address.bech32,
       });
-    } catch (err) {
+    } catch {
       // Error handled by mutation
     } finally {
       setIsGrantingFeeAllowance(false);

@@ -1,6 +1,211 @@
 @import "tailwindcss";
 
+/* Celestia Mocha - Midnight Ocean + Golden Physarum Design System */
+
 @theme {
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+
+  /* Colors - HSL values converted to Tailwind v4 format */
+  --color-background: hsl(210 70% 8%);
+  --color-foreground: hsl(45 20% 95%);
+
+  --color-card: hsl(210 60% 10%);
+  --color-card-foreground: hsl(45 20% 95%);
+
+  --color-popover: hsl(210 60% 10%);
+  --color-popover-foreground: hsl(45 20% 95%);
+
+  --color-primary: hsl(45 80% 55%);
+  --color-primary-foreground: hsl(210 70% 8%);
+
+  --color-secondary: hsl(210 50% 15%);
+  --color-secondary-foreground: hsl(45 20% 95%);
+
+  --color-muted: hsl(210 40% 18%);
+  --color-muted-foreground: hsl(210 20% 60%);
+
+  --color-accent: hsl(40 70% 50%);
+  --color-accent-foreground: hsl(210 70% 8%);
+
+  --color-destructive: hsl(0 62% 50%);
+  --color-destructive-foreground: hsl(0 0% 100%);
+
+  --color-border: hsl(210 40% 20%);
+  --color-input: hsl(210 40% 20%);
+  --color-ring: hsl(45 80% 55%);
+
+  /* Custom Physarum colors */
+  --color-physarum-gold: hsl(45 80% 55%);
+  --color-physarum-gold-glow: hsl(45 90% 65%);
+  --color-physarum-amber: hsl(38 75% 50%);
+  --color-midnight-blue: hsl(210 70% 25%);
+
+  /* Sidebar colors */
+  --color-sidebar: hsl(210 70% 6%);
+  --color-sidebar-foreground: hsl(45 20% 95%);
+  --color-sidebar-primary: hsl(45 80% 55%);
+  --color-sidebar-primary-foreground: hsl(210 70% 8%);
+  --color-sidebar-accent: hsl(210 50% 15%);
+  --color-sidebar-accent-foreground: hsl(45 20% 95%);
+  --color-sidebar-border: hsl(210 40% 20%);
+  --color-sidebar-ring: hsl(45 80% 55%);
+
+  /* Border radius */
+  --radius-lg: 0.75rem;
+  --radius-md: calc(0.75rem - 2px);
+  --radius-sm: calc(0.75rem - 4px);
+
+  /* Animations */
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-pulse-glow: pulse-glow 3s ease-in-out infinite;
+  --animate-float: float 6s ease-in-out infinite;
+
+  @keyframes accordion-down {
+    from { height: 0; }
+    to { height: var(--radix-accordion-content-height); }
+  }
+
+  @keyframes accordion-up {
+    from { height: var(--radix-accordion-content-height); }
+    to { height: 0; }
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 0.8; }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+}
+
+/* Base layer styles */
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+
+  code, pre {
+    font-family: var(--font-mono);
+  }
+}
+
+/* Utility classes */
+@layer utilities {
+  .gradient-text {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, var(--color-primary), var(--color-physarum-amber));
+  }
+
+  .glow-gold {
+    box-shadow: 0 0 40px color-mix(in srgb, var(--color-physarum-gold-glow) 30%, transparent);
+  }
+
+  .glow-purple {
+    box-shadow: 0 0 40px color-mix(in srgb, var(--color-physarum-gold-glow) 30%, transparent);
+  }
+
+  .glass {
+    @apply bg-card/50 backdrop-blur-xl border border-border/50;
+  }
+
+  /* Animation utilities for tailwindcss-animate compatibility */
+  .animate-in {
+    animation-duration: 150ms;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    animation-fill-mode: both;
+  }
+
+  .animate-out {
+    animation-duration: 150ms;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    animation-fill-mode: both;
+  }
+
+  .fade-in-0 {
+    animation-name: fadeIn;
+  }
+
+  .fade-out-0 {
+    animation-name: fadeOut;
+  }
+
+  .zoom-in-95 {
+    animation-name: zoomIn95;
+  }
+
+  .zoom-out-95 {
+    animation-name: zoomOut95;
+  }
+
+  .slide-in-from-top-2 {
+    animation-name: slideInFromTop2;
+  }
+
+  .slide-in-from-bottom-2 {
+    animation-name: slideInFromBottom2;
+  }
+
+  .slide-in-from-left-2 {
+    animation-name: slideInFromLeft2;
+  }
+
+  .slide-in-from-right-2 {
+    animation-name: slideInFromRight2;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+  }
+
+  @keyframes zoomIn95 {
+    from { transform: scale(0.95); }
+    to { transform: scale(1); }
+  }
+
+  @keyframes zoomOut95 {
+    from { transform: scale(1); }
+    to { transform: scale(0.95); }
+  }
+
+  @keyframes slideInFromTop2 {
+    from { transform: translateY(-0.5rem); }
+    to { transform: translateY(0); }
+  }
+
+  @keyframes slideInFromBottom2 {
+    from { transform: translateY(0.5rem); }
+    to { transform: translateY(0); }
+  }
+
+  @keyframes slideInFromLeft2 {
+    from { transform: translateX(-0.5rem); }
+    to { transform: translateX(0); }
+  }
+
+  @keyframes slideInFromRight2 {
+    from { transform: translateX(0.5rem); }
+    to { transform: translateX(0); }
+  }
+}
+
+/* Component layer for ring-offset */
+@layer components {
+  .ring-offset-background {
+    --tw-ring-offset-color: var(--color-background);
+  }
 }
