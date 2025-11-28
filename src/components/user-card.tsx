@@ -14,7 +14,7 @@ const UserCard = ({ walletAddress, githubUsername, hasFeegrant, joinDate }: User
   };
 
   return (
-    <div className="flex items-center justify-between p-4 rounded-lg glass hover:glow-purple transition-all duration-300">
+    <div className="flex items-center justify-between p-4 rounded-lg glass hover:glow-coral transition-all duration-300">
       <div className="flex items-center gap-4">
         {/* Avatar */}
         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">

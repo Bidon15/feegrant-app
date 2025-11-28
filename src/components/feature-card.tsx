@@ -9,13 +9,29 @@ interface FeatureCardProps {
 
 const FeatureCard = ({ icon: Icon, title, description }: FeatureCardProps) => {
   return (
-    <Card className="glass hover:glow-purple transition-all duration-300 group">
-      <CardContent className="p-6">
-        <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-          <Icon className="w-6 h-6 text-primary" />
+    <Card className="glass group hover:border-primary/30 transition-all duration-300 relative overflow-hidden">
+      {/* Hover glow effect */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/0 to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+      <CardContent className="p-6 relative">
+        {/* Icon container with node-like styling */}
+        <div className="relative w-12 h-12 mb-5">
+          <div className="absolute inset-0 rounded-lg bg-primary/20 blur-lg opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="relative w-12 h-12 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center group-hover:border-primary/40 transition-colors">
+            <Icon className="w-5 h-5 text-primary" />
+          </div>
         </div>
-        <h3 className="font-semibold text-lg mb-2">{title}</h3>
-        <p className="text-muted-foreground text-sm">{description}</p>
+
+        {/* Title with monospace styling */}
+        <h3 className="font-semibold text-lg mb-2 group-hover:text-primary transition-colors">
+          {title}
+        </h3>
+
+        {/* Description */}
+        <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
+
+        {/* Bottom accent line */}
+        <div className="absolute bottom-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
       </CardContent>
     </Card>
   );

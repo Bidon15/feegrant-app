@@ -8,7 +8,6 @@ import { TooltipProvider } from "~/components/ui/tooltip";
 export const metadata: Metadata = {
   title: "BlobCell - Submit Blobs to Celestia",
   description: "Get 10 TIA free to start. We cover the fees so you can focus on building.",
-  icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 
 export default function RootLayout({

@@ -25,10 +25,11 @@ export const env = createEnv({
     CELESTIA_CHAIN_ID: z.string().default("mocha-4"),
     COMMIT_URL: z.string().url(),
 
-    // OnChainDB configuration (optional while disabled)
-    ONCHAINDB_ENDPOINT: z.string().url().optional(),
-    ONCHAINDB_APP_ID: z.string().optional(),
-    ONCHAINDB_APP_KEY: z.string().optional(),
+    // OnChainDB configuration
+    ONCHAINDB_ENDPOINT: z.string().url().default("https://api.onchaindb.com"),
+    ONCHAINDB_APP_ID: z.string(),
+    ONCHAINDB_APP_API_KEY: z.string(),
+    ONCHAINDB_APP_WALLET: z.string(),
   },
 
   /**
@@ -55,7 +56,8 @@ export const env = createEnv({
     COMMIT_URL: process.env.COMMIT_URL,
     ONCHAINDB_ENDPOINT: process.env.ONCHAINDB_ENDPOINT,
     ONCHAINDB_APP_ID: process.env.ONCHAINDB_APP_ID,
-    ONCHAINDB_APP_KEY: process.env.ONCHAINDB_APP_KEY,
+    ONCHAINDB_APP_API_KEY: process.env.ONCHAINDB_APP_API_KEY,
+    ONCHAINDB_APP_WALLET: process.env.ONCHAINDB_APP_WALLET,
     NEXT_PUBLIC_RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_ENDPOINT,
   },
   /**

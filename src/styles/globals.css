@@ -1,55 +1,72 @@
 @import "tailwindcss";
 
-/* Celestia Mocha - Midnight Ocean + Golden Physarum Design System */
+/* Space Slime Mould Design System
+   Inspired by Physarum polycephalum sent to space - bioluminescent networks in the void
+   Dev-focused with terminal aesthetics and cosmic colors
+   Color scheme: Bioluminescent Green/Cyan primary + Coral warm accents
+*/
 
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', ui-monospace, monospace;
 
-  /* Colors - HSL values converted to Tailwind v4 format */
-  --color-background: hsl(210 70% 8%);
-  --color-foreground: hsl(45 20% 95%);
+  /* Core Colors - Deep Space + Electric Blue */
+  --color-background: hsl(230 25% 5%);
+  --color-foreground: hsl(210 20% 92%);
 
-  --color-card: hsl(210 60% 10%);
-  --color-card-foreground: hsl(45 20% 95%);
+  --color-card: hsl(230 30% 8%);
+  --color-card-foreground: hsl(210 20% 92%);
 
-  --color-popover: hsl(210 60% 10%);
-  --color-popover-foreground: hsl(45 20% 95%);
+  --color-popover: hsl(230 30% 8%);
+  --color-popover-foreground: hsl(210 20% 92%);
 
-  --color-primary: hsl(45 80% 55%);
-  --color-primary-foreground: hsl(210 70% 8%);
+  /* Primary - Bioluminescent Green (main accent) */
+  --color-primary: hsl(150 85% 50%);
+  --color-primary-foreground: hsl(0 0% 100%);
 
-  --color-secondary: hsl(210 50% 15%);
-  --color-secondary-foreground: hsl(45 20% 95%);
+  /* Secondary - Warm Ember */
+  --color-secondary: hsl(25 40% 12%);
+  --color-secondary-foreground: hsl(210 20% 92%);
 
-  --color-muted: hsl(210 40% 18%);
-  --color-muted-foreground: hsl(210 20% 60%);
+  /* Muted - Deep Space */
+  --color-muted: hsl(230 25% 12%);
+  --color-muted-foreground: hsl(220 15% 55%);
 
-  --color-accent: hsl(40 70% 50%);
-  --color-accent-foreground: hsl(210 70% 8%);
+  /* Accent - Coral Orange */
+  --color-accent: hsl(15 85% 55%);
+  --color-accent-foreground: hsl(0 0% 100%);
 
-  --color-destructive: hsl(0 62% 50%);
+  --color-destructive: hsl(0 70% 50%);
   --color-destructive-foreground: hsl(0 0% 100%);
 
-  --color-border: hsl(210 40% 20%);
-  --color-input: hsl(210 40% 20%);
-  --color-ring: hsl(45 80% 55%);
+  --color-border: hsl(230 30% 18%);
+  --color-input: hsl(230 30% 15%);
+  --color-ring: hsl(150 85% 50%);
 
-  /* Custom Physarum colors */
-  --color-physarum-gold: hsl(45 80% 55%);
-  --color-physarum-gold-glow: hsl(45 90% 65%);
-  --color-physarum-amber: hsl(38 75% 50%);
-  --color-midnight-blue: hsl(210 70% 25%);
+  /* Custom Colors - Green/Cyan + Warm Spectrum */
+  --color-electric: hsl(150 85% 50%);
+  --color-electric-glow: hsl(150 95% 60%);
+  --color-electric-dim: hsl(150 70% 40%);
+  --color-coral: hsl(15 85% 55%);
+  --color-coral-glow: hsl(15 95% 65%);
+  --color-amber: hsl(35 90% 55%);
+  --color-void: hsl(230 35% 6%);
+  --color-ember: hsl(20 50% 12%);
+
+  /* Terminal Colors */
+  --color-terminal-green: hsl(150 100% 60%);
+  --color-terminal-amber: hsl(35 100% 55%);
+  --color-terminal-red: hsl(0 100% 60%);
 
   /* Sidebar colors */
-  --color-sidebar: hsl(210 70% 6%);
-  --color-sidebar-foreground: hsl(45 20% 95%);
-  --color-sidebar-primary: hsl(45 80% 55%);
-  --color-sidebar-primary-foreground: hsl(210 70% 8%);
-  --color-sidebar-accent: hsl(210 50% 15%);
-  --color-sidebar-accent-foreground: hsl(45 20% 95%);
-  --color-sidebar-border: hsl(210 40% 20%);
-  --color-sidebar-ring: hsl(45 80% 55%);
+  --color-sidebar: hsl(230 30% 6%);
+  --color-sidebar-foreground: hsl(210 20% 92%);
+  --color-sidebar-primary: hsl(150 85% 50%);
+  --color-sidebar-primary-foreground: hsl(0 0% 100%);
+  --color-sidebar-accent: hsl(25 40% 15%);
+  --color-sidebar-accent-foreground: hsl(210 20% 92%);
+  --color-sidebar-border: hsl(230 30% 18%);
+  --color-sidebar-ring: hsl(150 85% 50%);
 
   /* Border radius */
   --radius-lg: 0.75rem;
@@ -61,6 +78,9 @@
   --animate-accordion-up: accordion-up 0.2s ease-out;
   --animate-pulse-glow: pulse-glow 3s ease-in-out infinite;
   --animate-float: float 6s ease-in-out infinite;
+  --animate-bioluminescence: bioluminescence 4s ease-in-out infinite;
+  --animate-network-pulse: network-pulse 2s ease-in-out infinite;
+  --animate-scan-line: scan-line 8s linear infinite;
 
   @keyframes accordion-down {
     from { height: 0; }
@@ -74,12 +94,39 @@
 
   @keyframes pulse-glow {
     0%, 100% { opacity: 0.4; }
-    50% { opacity: 0.8; }
+    50% { opacity: 0.9; }
   }
 
   @keyframes float {
     0%, 100% { transform: translateY(0px); }
     50% { transform: translateY(-10px); }
+  }
+
+  @keyframes bioluminescence {
+    0%, 100% {
+      filter: brightness(1) saturate(1);
+      opacity: 0.7;
+    }
+    50% {
+      filter: brightness(1.3) saturate(1.2);
+      opacity: 1;
+    }
+  }
+
+  @keyframes network-pulse {
+    0%, 100% {
+      stroke-opacity: 0.3;
+      stroke-width: 1;
+    }
+    50% {
+      stroke-opacity: 0.8;
+      stroke-width: 1.5;
+    }
+  }
+
+  @keyframes scan-line {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100vh); }
   }
 }
 
@@ -91,30 +138,164 @@
 
   body {
     @apply bg-background text-foreground antialiased;
+    background-image:
+      radial-gradient(ellipse at 20% 80%, hsl(150 85% 50% / 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 20%, var(--color-ember) 0%, transparent 40%),
+      radial-gradient(circle at 50% 50%, var(--color-void) 0%, var(--color-background) 100%);
+    background-attachment: fixed;
   }
 
   code, pre {
     font-family: var(--font-mono);
   }
+
+  /* Custom scrollbar - terminal style */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--color-void);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-electric);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-electric-glow);
+  }
+
+  /* Selection highlight */
+  ::selection {
+    background: color-mix(in srgb, var(--color-electric) 30%, transparent);
+  }
 }
 
 /* Utility classes */
 @layer utilities {
+  /* Gradient text effects */
   .gradient-text {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, var(--color-primary), var(--color-physarum-amber));
+    background-image: linear-gradient(135deg, var(--color-electric), var(--color-electric-glow));
   }
 
-  .glow-gold {
-    box-shadow: 0 0 40px color-mix(in srgb, var(--color-physarum-gold-glow) 30%, transparent);
+  .gradient-text-warm {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, var(--color-coral), var(--color-amber), var(--color-electric));
   }
 
-  .glow-purple {
-    box-shadow: 0 0 40px color-mix(in srgb, var(--color-physarum-gold-glow) 30%, transparent);
+  /* Glow effects */
+  .glow-green {
+    box-shadow:
+      0 0 20px color-mix(in srgb, var(--color-electric) 40%, transparent),
+      0 0 40px color-mix(in srgb, var(--color-electric) 20%, transparent),
+      0 0 60px color-mix(in srgb, var(--color-electric) 10%, transparent);
   }
 
+  .glow-coral {
+    box-shadow:
+      0 0 20px color-mix(in srgb, var(--color-coral) 40%, transparent),
+      0 0 40px color-mix(in srgb, var(--color-coral) 20%, transparent);
+  }
+
+  .glow-orange {
+    box-shadow:
+      0 0 20px color-mix(in srgb, var(--color-amber) 40%, transparent),
+      0 0 40px color-mix(in srgb, var(--color-amber) 20%, transparent);
+  }
+
+  /* Text glow for terminal aesthetic */
+  .text-glow {
+    text-shadow:
+      0 0 10px currentColor,
+      0 0 20px currentColor,
+      0 0 30px currentColor;
+  }
+
+  .text-glow-sm {
+    text-shadow:
+      0 0 5px currentColor,
+      0 0 10px currentColor;
+  }
+
+  /* Glass morphism - cosmic variant */
   .glass {
-    @apply bg-card/50 backdrop-blur-xl border border-border/50;
+    @apply backdrop-blur-xl border border-border/50;
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-card) 80%, transparent),
+      color-mix(in srgb, var(--color-card) 60%, transparent)
+    );
+  }
+
+  .glass-strong {
+    @apply backdrop-blur-2xl border border-border;
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-card) 95%, transparent),
+      color-mix(in srgb, var(--color-card) 85%, transparent)
+    );
+  }
+
+  /* Terminal-style box */
+  .terminal-box {
+    @apply font-mono text-sm;
+    background: var(--color-void);
+    border: 1px solid var(--color-electric);
+    box-shadow:
+      inset 0 0 30px color-mix(in srgb, var(--color-electric) 5%, transparent),
+      0 0 10px color-mix(in srgb, var(--color-electric) 20%, transparent);
+  }
+
+  /* Network node style */
+  .node {
+    @apply rounded-full;
+    background: radial-gradient(circle at 30% 30%, var(--color-electric-glow), var(--color-electric));
+    box-shadow:
+      0 0 15px var(--color-electric),
+      0 0 30px color-mix(in srgb, var(--color-electric) 50%, transparent);
+  }
+
+  /* Scan line effect overlay */
+  .scan-lines {
+    position: relative;
+  }
+
+  .scan-lines::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      color-mix(in srgb, var(--color-electric) 3%, transparent) 2px,
+      color-mix(in srgb, var(--color-electric) 3%, transparent) 4px
+    );
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  /* Border gradient */
+  .border-gradient {
+    position: relative;
+    border: none;
+  }
+
+  .border-gradient::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background: linear-gradient(135deg, var(--color-electric), var(--color-coral), var(--color-amber));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
   }
 
   /* Animation utilities for tailwindcss-animate compatibility */
@@ -203,9 +384,20 @@
   }
 }
 
-/* Component layer for ring-offset */
+/* Component layer */
 @layer components {
   .ring-offset-background {
     --tw-ring-offset-color: var(--color-background);
+  }
+
+  /* Terminal cursor blink */
+  .cursor-blink::after {
+    content: '_';
+    animation: blink 1s step-end infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
   }
 }
