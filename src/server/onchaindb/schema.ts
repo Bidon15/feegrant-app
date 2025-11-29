@@ -89,20 +89,6 @@ export const SCHEMAS: Record<string, CollectionSchema> = {
     ],
   },
 
-  job_logs: {
-    fields: {
-      id: { type: "string", required: true, unique: true },
-      jobName: { type: "string", required: true, index: true },
-      payload: { type: "object", required: true },
-      status: { type: "string", required: true, index: true },
-      txHash: { type: "string" },
-      error: { type: "string" },
-      createdAt: { type: "string", required: true },
-      updatedAt: { type: "string", required: true },
-    },
-    required: ["id", "jobName", "payload", "status", "createdAt", "updatedAt"],
-  },
-
   verification_tokens: {
     fields: {
       identifier: { type: "string", required: true, index: true },
@@ -111,6 +97,33 @@ export const SCHEMAS: Record<string, CollectionSchema> = {
     },
     required: ["identifier", "token", "expires"],
   },
+
+  namespaces: {
+    fields: {
+      id: { type: "string", required: true, unique: true },
+      userId: { type: "string", required: true, index: true },
+      name: { type: "string", required: true, unique: true },
+      namespaceId: { type: "string", required: true, unique: true },
+      description: { type: "string" },
+      blobCount: { type: "number", required: true },
+      totalBytes: { type: "number", required: true },
+      lastActivityAt: { type: "string" },
+      isActive: { type: "boolean", required: true },
+      createdAt: { type: "string", required: true },
+      updatedAt: { type: "string", required: true },
+    },
+    required: ["id", "userId", "name", "namespaceId", "blobCount", "totalBytes", "isActive", "createdAt", "updatedAt"],
+    relationships: [
+      {
+        type: "one-to-many",
+        collection: "users",
+        localField: "userId",
+        foreignField: "id",
+        cascade: false,
+      },
+    ],
+  },
+
 };
 
 // Index definitions for optimized queries
@@ -232,33 +245,6 @@ export const INDEXES: IndexDefinition[] = [
     index_type: "hash",
   },
 
-  // Job logs collection indexes
-  {
-    name: "idx_job_logs_id",
-    collection: COLLECTIONS.jobLogs,
-    field_name: "id",
-    index_type: "hash",
-    options: { unique: true },
-  },
-  {
-    name: "idx_job_logs_jobName",
-    collection: COLLECTIONS.jobLogs,
-    field_name: "jobName",
-    index_type: "hash",
-  },
-  {
-    name: "idx_job_logs_status",
-    collection: COLLECTIONS.jobLogs,
-    field_name: "status",
-    index_type: "hash",
-  },
-  {
-    name: "idx_job_logs_createdAt",
-    collection: COLLECTIONS.jobLogs,
-    field_name: "createdAt",
-    index_type: "btree",
-  },
-
   // Verification tokens collection indexes
   {
     name: "idx_verification_tokens_identifier_token",
@@ -268,6 +254,48 @@ export const INDEXES: IndexDefinition[] = [
     fields: ["identifier", "token"],
     options: { unique: true },
   },
+
+  // Namespaces collection indexes
+  {
+    name: "idx_namespaces_id",
+    collection: COLLECTIONS.namespaces,
+    field_name: "id",
+    index_type: "hash",
+    options: { unique: true },
+  },
+  {
+    name: "idx_namespaces_userId",
+    collection: COLLECTIONS.namespaces,
+    field_name: "userId",
+    index_type: "hash",
+  },
+  {
+    name: "idx_namespaces_name",
+    collection: COLLECTIONS.namespaces,
+    field_name: "name",
+    index_type: "hash",
+    options: { unique: true },
+  },
+  {
+    name: "idx_namespaces_namespaceId",
+    collection: COLLECTIONS.namespaces,
+    field_name: "namespaceId",
+    index_type: "hash",
+    options: { unique: true },
+  },
+  {
+    name: "idx_namespaces_isActive",
+    collection: COLLECTIONS.namespaces,
+    field_name: "isActive",
+    index_type: "hash",
+  },
+  {
+    name: "idx_namespaces_blobCount",
+    collection: COLLECTIONS.namespaces,
+    field_name: "blobCount",
+    index_type: "btree",
+  },
+
 ];
 
 // Collection configurations for creation
@@ -297,16 +325,16 @@ export const COLLECTION_CONFIGS = [
     sort_column: "createdAt",
   },
   {
-    name: COLLECTIONS.jobLogs,
-    namespace: `${env.ONCHAINDB_APP_ID}_job_logs`,
-    primary_column: "id",
-    sort_column: "createdAt",
-  },
-  {
     name: COLLECTIONS.verificationTokens,
     namespace: `${env.ONCHAINDB_APP_ID}_verification_tokens`,
     primary_column: "identifier",
     sort_column: "expires",
+  },
+  {
+    name: COLLECTIONS.namespaces,
+    namespace: `${env.ONCHAINDB_APP_ID}_namespaces`,
+    primary_column: "id",
+    sort_column: "createdAt",
   },
 ];
 

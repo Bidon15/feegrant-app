@@ -9,7 +9,15 @@ import { Label } from "~/components/ui/label";
 import AuthStepper from "~/components/auth-stepper";
 import { Github, Wallet, Check, ExternalLink, Loader2, AlertCircle, Terminal, ChevronRight, FolderPlus } from "lucide-react";
 import { Badge } from "~/components/ui/badge";
-import { suggestedNamespaces } from "~/lib/mock-data";
+import { api } from "~/trpc/react";
+
+// Suggested namespace patterns
+const suggestedNamespacePatterns = [
+  "myapp/production",
+  "myapp/staging",
+  "dev/experiments",
+  "project/data",
+];
 
 export default function AuthPage() {
   const [currentStep, setCurrentStep] = useState(0);
@@ -18,15 +26,23 @@ export default function AuthPage() {
   const [, setWalletConnected] = useState(false);
   const [feegrantReceived, setFeegrantReceived] = useState(false);
 
-  // Mock data for demo
+  // State for demo flow
   const [walletAddress, setWalletAddress] = useState("");
   const [selectedNamespace, setSelectedNamespace] = useState("");
   const [customNamespace, setCustomNamespace] = useState("");
-  const [feegrantDetails] = useState({
-    allowance: "10 TIA",
-    expiry: "30 days",
-    txHash: "ABC123DEF456789",
+  const [feegrantDetails, setFeegrantDetails] = useState({
+    allowance: "1 TIA",
+    expiry: "No expiration",
+    txHash: "",
   });
+
+  // Fetch user's existing namespaces
+  const { data: userNamespaces } = api.namespace.list.useQuery(undefined, {
+    enabled: currentStep >= 2,
+  });
+
+  // Create namespace mutation
+  const createNamespace = api.namespace.create.useMutation();
 
   const steps = ["GitHub", "Wallet", "Namespace", "Feegrant"];
 
@@ -50,27 +66,55 @@ export default function AuthPage() {
   };
 
   const handleNamespaceSelect = async () => {
-    if (!selectedNamespace && !customNamespace) return;
-    setIsLoading(true);
-    // Simulate namespace creation/selection
-    await new Promise((r) => setTimeout(r, 1000));
-    setCurrentStep(3);
-    setIsLoading(false);
+    const namespaceName = customNamespace || selectedNamespace;
+    if (!namespaceName) return;
 
-    // Auto-trigger feegrant
-    await handleFeegrant();
+    setIsLoading(true);
+
+    try {
+      // Create namespace if it's a new one
+      const existingNs = userNamespaces?.find((ns) => ns.name === namespaceName);
+      if (!existingNs && customNamespace) {
+        await createNamespace.mutateAsync({
+          name: customNamespace,
+          description: `Namespace created during onboarding`,
+        });
+      }
+
+      setCurrentStep(3);
+
+      // Auto-trigger feegrant
+      await handleFeegrant();
+    } catch (error) {
+      console.error("Failed to create namespace:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleFeegrant = async () => {
     setIsLoading(true);
     // Simulate dusting and feegrant
     await new Promise((r) => setTimeout(r, 2000));
+    setFeegrantDetails({
+      allowance: "1 TIA",
+      expiry: "No expiration",
+      txHash: "FEEGRANT_TX_" + Date.now().toString(36).toUpperCase(),
+    });
     setFeegrantReceived(true);
     setCurrentStep(4);
     setIsLoading(false);
   };
 
   const finalNamespace = customNamespace || selectedNamespace;
+
+  // Combine user's existing namespaces with suggested patterns
+  const availableNamespaces = [
+    ...(userNamespaces?.map((ns) => ns.name) ?? []),
+    ...suggestedNamespacePatterns.filter(
+      (pattern) => !userNamespaces?.some((ns) => ns.name === pattern)
+    ),
+  ].slice(0, 4);
 
   return (
     <div className="min-h-screen relative">
@@ -243,7 +287,7 @@ export default function AuthPage() {
 
                 {/* Suggested namespaces */}
                 <div className="grid grid-cols-2 gap-2">
-                  {suggestedNamespaces.map((ns) => (
+                  {availableNamespaces.map((ns) => (
                     <button
                       key={ns}
                       onClick={() => {
@@ -257,6 +301,9 @@ export default function AuthPage() {
                       }`}
                     >
                       {ns}
+                      {userNamespaces?.some((existing) => existing.name === ns) && (
+                        <span className="ml-1 text-xs text-primary">(yours)</span>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -326,7 +373,7 @@ export default function AuthPage() {
                     <div className="text-muted-foreground pl-4">--granter blobcell \</div>
                     <div className="text-muted-foreground pl-4">--grantee {walletAddress || "..."} \</div>
                     <div className="text-muted-foreground pl-4">--namespace {finalNamespace} \</div>
-                    <div className="text-primary pl-4 animate-pulse">--spend-limit 10000000utia</div>
+                    <div className="text-primary pl-4 animate-pulse">--spend-limit 1000000utia</div>
                   </div>
                 </div>
               </CardContent>
@@ -379,18 +426,20 @@ export default function AuthPage() {
                       <span className="text-muted-foreground">expires</span>
                       <span className="text-foreground">{feegrantDetails.expiry}</span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">tx_hash</span>
-                      <a
-                        href={`https://mocha.celenium.io/tx/${feegrantDetails.txHash}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-[hsl(185_90%_50%)] hover:underline"
-                      >
-                        {feegrantDetails.txHash.slice(0, 8)}...
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
-                    </div>
+                    {feegrantDetails.txHash && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">tx_hash</span>
+                        <a
+                          href={`https://mocha.celenium.io/tx/${feegrantDetails.txHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-[hsl(185_90%_50%)] hover:underline"
+                        >
+                          {feegrantDetails.txHash.slice(0, 12)}...
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                    )}
                   </div>
                 </div>
 

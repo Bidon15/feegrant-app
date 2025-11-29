@@ -1,20 +1,11 @@
 import { createTRPCRouter, publicProcedure, protectedProcedure } from "~/server/api/trpc";
-import { COLLECTIONS, type User, type Address, type JobLog } from "~/server/db";
+import { COLLECTIONS, type User, type Address } from "~/server/db";
 import { getCelestiaClient } from "~/server/celestia/client";
 
 // Format TIA amount from uTIA
 function formatTia(utia: number): string {
   const tia = utia / 1000000;
   return `${tia.toFixed(2)} TIA`;
-}
-
-// Format bytes to human readable
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
 
 export const statsRouter = createTRPCRouter({
@@ -33,30 +24,12 @@ export const statsRouter = createTRPCRouter({
       { hasFeeGrant: true }
     );
 
-    // Count jobs
-    const totalJobs = await ctx.db.countDocuments(COLLECTIONS.jobLogs, {});
-    const completedJobs = await ctx.db.countDocuments(COLLECTIONS.jobLogs, {
-      status: "completed",
-    });
-    const failedJobs = await ctx.db.countDocuments(COLLECTIONS.jobLogs, {
-      status: "failed",
-    });
-
     return {
       users: {
         total: totalUsers,
         withAddress: totalAddresses,
         dusted: dustedAddresses,
         feegranted: feegrantedAddresses,
-      },
-      jobs: {
-        total: totalJobs,
-        completed: completedJobs,
-        failed: failedJobs,
-        successRate:
-          totalJobs > 0
-            ? Math.round((completedJobs / totalJobs) * 100)
-            : 100,
       },
     };
   }),
@@ -108,25 +81,6 @@ export const statsRouter = createTRPCRouter({
     return leaderboardEntries;
   }),
 
-  // Get recent activity (job logs)
-  recentActivity: publicProcedure.query(async ({ ctx }) => {
-    const jobs = await ctx.db.findMany<JobLog>(
-      COLLECTIONS.jobLogs,
-      {},
-      { limit: 20, sort: { field: "createdAt", order: "desc" } }
-    );
-
-    return jobs.map((job) => ({
-      id: job.id,
-      type: job.jobName,
-      status: job.status,
-      txHash: job.txHash,
-      error: job.error,
-      timestamp: job.createdAt,
-      payload: job.payload,
-    }));
-  }),
-
   // Get current user's detailed stats
   myStats: protectedProcedure.query(async ({ ctx }) => {
     const user = await ctx.db.findUnique<User>(COLLECTIONS.users, {
@@ -153,24 +107,6 @@ export const statsRouter = createTRPCRouter({
       }
     }
 
-    // Get user's job history
-    const userJobs = await ctx.db.findMany<JobLog>(
-      COLLECTIONS.jobLogs,
-      {},
-      { limit: 100, sort: { field: "createdAt", order: "desc" } }
-    );
-
-    // Filter jobs related to user's address
-    const myJobs = address
-      ? userJobs.filter(
-          (job) =>
-            job.payload &&
-            typeof job.payload === "object" &&
-            "address" in job.payload &&
-            job.payload.address === address.bech32
-        )
-      : [];
-
     return {
       user: {
         id: user.id,
@@ -190,12 +126,6 @@ export const statsRouter = createTRPCRouter({
             balanceUtia: parseInt(balance),
           }
         : null,
-      activity: {
-        totalJobs: myJobs.length,
-        dustJobs: myJobs.filter((j) => j.jobName === "dust.send").length,
-        feegrantJobs: myJobs.filter((j) => j.jobName === "feegrant.grant").length,
-        recentJobs: myJobs.slice(0, 5),
-      },
     };
   }),
 

@@ -40,10 +40,6 @@ export default function HtopPage() {
     refetchInterval: 30000,
   });
 
-  const { data: recentActivity } = api.stats.recentActivity.useQuery(undefined, {
-    refetchInterval: 10000, // Refresh every 10 seconds
-  });
-
   const { data: backendWallet } = api.stats.backendWallet.useQuery();
 
   // Session time counter
@@ -97,7 +93,7 @@ export default function HtopPage() {
                   <div className="flex items-center gap-2">
                     <Activity className="w-3 h-3 text-accent" />
                     <span className="text-foreground">
-                      {networkStats.jobs.successRate}% success
+                      {networkStats.users.feegranted} fee granted
                     </span>
                   </div>
                 </>
@@ -306,54 +302,6 @@ export default function HtopPage() {
             )}
           </CardContent>
         </Card>
-
-        {/* Recent Activity */}
-        {recentActivity && recentActivity.length > 0 && (
-          <Card className="glass-strong">
-            <CardHeader className="pb-2">
-              <CardTitle className="font-mono text-sm flex items-center gap-2">
-                <Activity className="w-4 h-4 text-primary" />
-                <span className="text-primary">RECENT ACTIVITY</span>
-                <span className="text-muted-foreground"> - job logs</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {recentActivity.slice(0, 10).map((job) => (
-                  <div
-                    key={job.id}
-                    className="flex items-center justify-between p-2 rounded bg-muted/10 hover:bg-muted/20 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Badge
-                        variant={job.status === "completed" ? "default" : "destructive"}
-                        className="font-mono text-xs w-20 justify-center"
-                      >
-                        {job.status}
-                      </Badge>
-                      <span className="font-mono text-sm">{job.type}</span>
-                    </div>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      {job.txHash && job.txHash !== "existing_allowance" && (
-                        <a
-                          href={`https://mocha.celenium.io/tx/${job.txHash}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="font-mono hover:text-primary transition-colors"
-                        >
-                          {job.txHash.slice(0, 8)}...
-                        </a>
-                      )}
-                      <span className="font-mono">
-                        {new Date(job.timestamp).toLocaleTimeString()}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Footer Help */}
         <div className="mt-6 text-center font-mono text-xs text-muted-foreground">

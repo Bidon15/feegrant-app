@@ -9,7 +9,6 @@ import { Button } from "~/components/ui/button";
 import { api } from "~/trpc/react";
 import {
   Wallet,
-  FolderPlus,
   ExternalLink,
   Plus,
   Coins,
@@ -73,7 +72,7 @@ export default function ProfilePage() {
     );
   }
 
-  const { user, wallet, activity } = myStats;
+  const { user, wallet } = myStats;
   const hasWallet = !!wallet;
   const feeAllowanceRemaining = wallet?.feeAllowanceRemaining
     ? parseInt(wallet.feeAllowanceRemaining)
@@ -234,26 +233,44 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
 
-          {/* Activity Card */}
+          {/* Wallet Status Card */}
           <Card className="glass border-coral/20">
             <CardContent className="p-6">
               <div className="flex items-center gap-2 mb-4">
                 <Terminal className="w-5 h-5 text-[hsl(15_85%_55%)]" />
                 <span className="font-mono text-sm text-muted-foreground">
-                  Your Activity
+                  Wallet Status
                 </span>
               </div>
-              <div className="text-3xl font-bold font-mono">{activity.totalJobs}</div>
-              <div className="text-sm text-muted-foreground mt-1 space-y-1">
-                <div className="flex justify-between">
-                  <span>Dust jobs:</span>
-                  <span className="font-mono">{activity.dustJobs}</span>
+              {hasWallet ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    {wallet.isDusted ? (
+                      <CheckCircle2 className="w-5 h-5 text-primary" />
+                    ) : (
+                      <XCircle className="w-5 h-5 text-muted-foreground" />
+                    )}
+                    <span className={wallet.isDusted ? "text-primary" : "text-muted-foreground"}>
+                      {wallet.isDusted ? "Dusted" : "Not dusted"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {wallet.hasFeeGrant ? (
+                      <CheckCircle2 className="w-5 h-5 text-accent" />
+                    ) : (
+                      <XCircle className="w-5 h-5 text-muted-foreground" />
+                    )}
+                    <span className={wallet.hasFeeGrant ? "text-accent" : "text-muted-foreground"}>
+                      {wallet.hasFeeGrant ? "Fee grant active" : "No fee grant"}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span>Feegrant jobs:</span>
-                  <span className="font-mono">{activity.feegrantJobs}</span>
+              ) : (
+                <div className="text-center py-2">
+                  <XCircle className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">No wallet connected</p>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -277,68 +294,22 @@ export default function ProfilePage() {
                 </div>
                 <div className="text-center p-4 rounded-lg bg-muted/20">
                   <div className="text-2xl font-bold font-mono text-accent">
+                    {networkStats.users.withAddress}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Connected Wallets</div>
+                </div>
+                <div className="text-center p-4 rounded-lg bg-muted/20">
+                  <div className="text-2xl font-bold font-mono text-[hsl(15_85%_55%)]">
                     {networkStats.users.dusted}
                   </div>
                   <div className="text-xs text-muted-foreground">Dusted Wallets</div>
                 </div>
                 <div className="text-center p-4 rounded-lg bg-muted/20">
-                  <div className="text-2xl font-bold font-mono text-[hsl(15_85%_55%)]">
+                  <div className="text-2xl font-bold font-mono">
                     {networkStats.users.feegranted}
                   </div>
                   <div className="text-xs text-muted-foreground">Fee Granted</div>
                 </div>
-                <div className="text-center p-4 rounded-lg bg-muted/20">
-                  <div className="text-2xl font-bold font-mono">
-                    {networkStats.jobs.successRate}%
-                  </div>
-                  <div className="text-xs text-muted-foreground">Success Rate</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Recent Activity */}
-        {activity.recentJobs.length > 0 && (
-          <Card className="glass-strong">
-            <CardHeader>
-              <CardTitle className="font-mono text-sm flex items-center gap-2">
-                <Terminal className="w-4 h-4 text-accent" />
-                <span className="text-accent">RECENT ACTIVITY</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {activity.recentJobs.map((job) => (
-                  <div
-                    key={job.id}
-                    className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/50"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Badge
-                        variant={job.status === "completed" ? "default" : "destructive"}
-                        className="font-mono text-xs"
-                      >
-                        {job.status}
-                      </Badge>
-                      <span className="font-mono text-sm">{job.jobName}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      {job.txHash && job.txHash !== "existing_allowance" && (
-                        <a
-                          href={`https://mocha.celenium.io/tx/${job.txHash}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 hover:text-primary transition-colors"
-                        >
-                          {job.txHash.slice(0, 8)}...
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      )}
-                      <span>{new Date(job.createdAt).toLocaleString()}</span>
-                    </div>
-                  </div>
-                ))}
               </div>
             </CardContent>
           </Card>

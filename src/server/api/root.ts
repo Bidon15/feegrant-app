@@ -4,6 +4,7 @@ import { blobRouter } from "~/server/api/routers/blob";
 import { accountRouter } from "~/server/api/routers/account";
 import { adminRouter } from "~/server/api/routers/admin";
 import { statsRouter } from "~/server/api/routers/stats";
+import { namespaceRouter } from "~/server/api/routers/namespace";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
 /**
@@ -18,6 +19,7 @@ export const appRouter = createTRPCRouter({
   account: accountRouter,
   admin: adminRouter,
   stats: statsRouter,
+  namespace: namespaceRouter,
 });
 
 // export type definition of API

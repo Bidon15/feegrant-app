@@ -8,8 +8,8 @@ export const COLLECTIONS = {
   accounts: "accounts",
   sessions: "sessions",
   addresses: "addresses",
-  jobLogs: "job_logs",
   verificationTokens: "verification_tokens",
+  namespaces: "namespaces",
 } as const;
 
 // Type definitions for our data models
@@ -59,21 +59,25 @@ export interface Address {
   updatedAt: string;
 }
 
-export interface JobLog {
-  id: string;
-  jobName: string;
-  payload: Record<string, unknown>;
-  status: string;
-  txHash: string | null;
-  error: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface VerificationToken {
   identifier: string;
   token: string;
   expires: string; // ISO date string
+}
+
+// Namespace - Celestia blob namespace owned by a user
+export interface Namespace {
+  id: string;
+  userId: string;
+  name: string; // e.g., "myapp/production"
+  namespaceId: string; // Celestia namespace ID (hex)
+  description: string | null;
+  blobCount: number;
+  totalBytes: number;
+  lastActivityAt: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Initialize OnChainDB client
