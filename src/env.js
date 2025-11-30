@@ -26,7 +26,7 @@ export const env = createEnv({
     COMMIT_URL: z.string().url(),
 
     // OnChainDB configuration
-    ONCHAINDB_ENDPOINT: z.string().url().default("https://api.onchaindb.com"),
+    ONCHAINDB_ENDPOINT: z.string().url().default("https://api.onchaindb.io"),
     ONCHAINDB_APP_ID: z.string(),
     ONCHAINDB_APP_API_KEY: z.string(),
     ONCHAINDB_APP_WALLET: z.string(),
