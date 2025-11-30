@@ -153,7 +153,9 @@ export const db: DBClient = {
       return result as T | null;
     } catch (error) {
       console.error(`[OnChainDB] findUnique error in ${collection}:`, error);
-      return null;
+      // Re-throw the error instead of silently returning null
+      // This prevents false negatives on validation checks (e.g., duplicate address detection)
+      throw error;
     }
   },
 
