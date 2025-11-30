@@ -1,46 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import CodeBlock from "~/components/code-block";
-import UserCard from "~/components/user-card";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Badge } from "~/components/ui/badge";
-import { Users, Code, FileCode, Key } from "lucide-react";
-
-// Mock users data
-const mockUsers = [
-  {
-    walletAddress: "celestia1abc123def456ghi789jkl012mno345pqr678stu",
-    githubUsername: "alice_dev",
-    hasFeegrant: true,
-    joinDate: "Nov 25, 2024",
-  },
-  {
-    walletAddress: "celestia1xyz987wvu654tsr321qpo098nml765kji432hgf",
-    githubUsername: "bob_builder",
-    hasFeegrant: true,
-    joinDate: "Nov 24, 2024",
-  },
-  {
-    walletAddress: "celestia1def456abc123xyz789qwe456rty789uio123asd",
-    githubUsername: "charlie_cosmos",
-    hasFeegrant: false,
-    joinDate: "Nov 23, 2024",
-  },
-  {
-    walletAddress: "celestia1qwe123asd456zxc789poi098lkj765mnb432vcx",
-    githubUsername: "diana_data",
-    hasFeegrant: true,
-    joinDate: "Nov 22, 2024",
-  },
-  {
-    walletAddress: "celestia1poi098lkj765mnb432vcxqwe123asd456zxc789",
-    githubUsername: "eve_engineer",
-    hasFeegrant: true,
-    joinDate: "Nov 21, 2024",
-  },
-];
+import { Users, Code, FileCode, Key, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { api } from "~/trpc/react";
+import { truncateAddress } from "~/lib/formatting";
 
 const goExample = `package main
 
@@ -123,6 +91,9 @@ const responseExample = `{
 
 export default function GetStartedPage() {
   const [activeTab, setActiveTab] = useState("go");
+
+  // Fetch real leaderboard data
+  const { data: leaderboard, isLoading } = api.stats.leaderboard.useQuery();
 
   return (
     <div className="min-h-screen bg-background">
@@ -214,7 +185,7 @@ export default function GetStartedPage() {
             </Card>
           </section>
 
-          {/* All Users Section */}
+          {/* Community Section - Real Data */}
           <section>
             <Card className="glass">
               <CardHeader>
@@ -223,24 +194,66 @@ export default function GetStartedPage() {
                     <Users className="w-5 h-5 text-primary" />
                     <CardTitle>Community</CardTitle>
                   </div>
-                  <Badge variant="secondary">{mockUsers.length} developers</Badge>
+                  <Badge variant="secondary">
+                    {isLoading ? "..." : `${leaderboard?.length ?? 0} developers`}
+                  </Badge>
                 </div>
                 <CardDescription>
                   Developers building with BlobCell
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {mockUsers.map((user, index) => (
-                    <UserCard
-                      key={index}
-                      walletAddress={user.walletAddress}
-                      githubUsername={user.githubUsername}
-                      hasFeegrant={user.hasFeegrant}
-                      joinDate={user.joinDate}
-                    />
-                  ))}
-                </div>
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  </div>
+                ) : leaderboard && leaderboard.length > 0 ? (
+                  <div className="space-y-3">
+                    {leaderboard.map((user) => (
+                      <div
+                        key={user.id}
+                        className="flex items-center justify-between p-4 rounded-lg bg-muted/20 border border-border/50 hover:bg-muted/30 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Image
+                            src={user.avatar}
+                            alt={user.username}
+                            width={40}
+                            height={40}
+                            className="w-10 h-10 rounded-full border border-border"
+                            unoptimized
+                          />
+                          <div>
+                            <div className="font-medium">{user.username}</div>
+                            <div className="text-xs text-muted-foreground font-mono">
+                              {truncateAddress(user.walletAddress)}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-1">
+                            {user.hasFeeGrant ? (
+                              <CheckCircle2 className="w-4 h-4 text-primary" />
+                            ) : (
+                              <XCircle className="w-4 h-4 text-muted-foreground" />
+                            )}
+                            <span className="text-xs text-muted-foreground">
+                              {user.hasFeeGrant ? "Feegrant" : "Pending"}
+                            </span>
+                          </div>
+                          <Badge variant={user.isDusted ? "default" : "secondary"} className="font-mono text-xs">
+                            {user.isDusted ? "Dusted" : "Not dusted"}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p>No developers yet. Be the first!</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </section>

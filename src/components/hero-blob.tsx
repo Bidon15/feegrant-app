@@ -47,7 +47,7 @@ const HeroBlob = () => {
     endAngle: number,
     innerRadius: number,
     outerRadius: number,
-    waviness: number = 0
+    waviness = 0
   ): string => {
     const startRad = (startAngle * Math.PI) / 180;
     const endRad = (endAngle * Math.PI) / 180;

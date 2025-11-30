@@ -8,8 +8,6 @@
  * index all Celestia data and provide efficient query APIs.
  */
 
-import { env } from "~/env";
-
 // Base URL for Celenium API (mocha testnet)
 const CELENIUM_API_BASE = "https://api-mocha-4.celenium.io/v1";
 

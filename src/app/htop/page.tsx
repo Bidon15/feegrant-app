@@ -54,8 +54,8 @@ export default function HtopPage() {
   };
 
   const handleRefresh = () => {
-    refetchLeaderboard();
-    refetchStats();
+    void refetchLeaderboard();
+    void refetchStats();
   };
 
   return (

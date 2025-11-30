@@ -470,7 +470,7 @@ export async function verifyIndexes(): Promise<{
       missing,
       existing,
     };
-  } catch (error) {
+  } catch {
     return {
       valid: false,
       missing: INDEXES.map((i) => i.name),
