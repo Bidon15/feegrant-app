@@ -19,6 +19,8 @@ import {
   Loader2,
   RefreshCw,
   Activity,
+  BookOpen,
+  Code,
 } from "lucide-react";
 import { formatTia, truncateAddress } from "~/lib/formatting";
 
@@ -304,8 +306,41 @@ export default function ProfilePage() {
           </Card>
         )}
 
+        {/* Start Building CTA - Show when wallet is active */}
+        {hasWallet && wallet.isDusted && wallet.hasFeeGrant && (
+          <Card className="glass border-primary/30 mb-8">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center">
+                  <Code className="w-7 h-7 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-mono font-semibold mb-1">Ready to Submit Blobs</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Your feegrant is active. Start building with Go or Rust.
+                  </p>
+                </div>
+                <Button asChild className="font-mono glow-green">
+                  <Link href="/get-started">
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    View Docs
+                  </Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Quick Actions */}
         <div className="mt-8 flex flex-wrap gap-4 justify-center">
+          {hasWallet && wallet.isDusted && wallet.hasFeeGrant && (
+            <Button asChild className="font-mono glow-green">
+              <Link href="/get-started">
+                <Code className="w-4 h-4 mr-2" />
+                Start Building
+              </Link>
+            </Button>
+          )}
           <Button asChild variant="outline" className="font-mono">
             <Link href="/htop">
               <Terminal className="w-4 h-4 mr-2" />

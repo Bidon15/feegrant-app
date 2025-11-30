@@ -6,88 +6,154 @@ import CodeBlock from "~/components/code-block";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Badge } from "~/components/ui/badge";
-import { Users, Code, FileCode, Key, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { Users, FileCode, Key, Loader2, CheckCircle2, XCircle, Terminal, ExternalLink } from "lucide-react";
 import { api } from "~/trpc/react";
 import { truncateAddress } from "~/lib/formatting";
+import { Button } from "~/components/ui/button";
+
+const envExample = `# .env - Your Celestia configuration
+# Get your private key from Keplr: Settings > Show Private Key
+
+CELESTIA_PRIVATE_KEY="your_private_key_here"
+CELESTIA_GRPC_ENDPOINT="celestia-testnet-consensus.itrocket.net:9090"
+CELESTIA_BRIDGE_ENDPOINT="http://localhost:26658"
+CELESTIA_NETWORK="mocha-4"`;
 
 const goExample = `package main
 
 import (
-    "bytes"
-    "encoding/json"
-    "fmt"
-    "net/http"
+	"context"
+	"fmt"
+	"os"
+	"time"
+
+	"github.com/joho/godotenv"
+	"github.com/cosmos/cosmos-sdk/crypto/keyring"
+	libshare "github.com/celestiaorg/go-square/v3/share"
+	"github.com/celestiaorg/celestia-node/api/client"
+	"github.com/celestiaorg/celestia-node/blob"
 )
 
-func submitBlob(namespace, data string) error {
-    payload := map[string]interface{}{
-        "namespace": namespace,
-        "data":      data,
-        "gas_limit": 80000,
-    }
+func main() {
+	// Load .env file
+	godotenv.Load()
 
-    body, _ := json.Marshal(payload)
-    req, _ := http.NewRequest("POST", "https://api.blobcell.dev/v1/blob", bytes.NewBuffer(body))
-    req.Header.Set("Authorization", "Bearer YOUR_API_KEY")
-    req.Header.Set("Content-Type", "application/json")
+	// Setup keyring from private key
+	keyname := "blobcell"
+	kr, err := client.KeyringWithNewKey(client.KeyringConfig{
+		KeyName:     keyname,
+		BackendName: keyring.BackendTest,
+	}, "./keys")
+	if err != nil {
+		panic(err)
+	}
 
-    resp, err := http.DefaultClient.Do(req)
-    if err != nil {
-        return err
-    }
-    defer resp.Body.Close()
+	// Configure client using env vars
+	cfg := client.Config{
+		ReadConfig: client.ReadConfig{
+			BridgeDAAddr: os.Getenv("CELESTIA_BRIDGE_ENDPOINT"),
+			DAAuthToken:  os.Getenv("CELESTIA_AUTH_TOKEN"),
+		},
+		SubmitConfig: client.SubmitConfig{
+			DefaultKeyName: keyname,
+			Network:        os.Getenv("CELESTIA_NETWORK"),
+			CoreGRPCConfig: client.CoreGRPCConfig{
+				Addr:       os.Getenv("CELESTIA_GRPC_ENDPOINT"),
+				TLSEnabled: false,
+			},
+		},
+	}
 
-    var result map[string]interface{}
-    json.NewDecoder(resp.Body).Decode(&result)
-    fmt.Printf("Tx Hash: %s\\n", result["txHash"])
-    return nil
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+
+	// Create client
+	c, err := client.New(ctx, cfg, kr)
+	if err != nil {
+		panic(err)
+	}
+
+	// Submit a blob - your fee grant covers this!
+	namespace := libshare.MustNewV0Namespace([]byte("blobcell"))
+	b, _ := blob.NewBlob(libshare.ShareVersionZero, namespace, []byte("hello from blobcell!"), nil)
+
+	height, err := c.Blob.Submit(ctx, []*blob.Blob{b}, nil)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("Blob submitted at height: %d\\n", height)
+
+	// Verify by retrieving
+	retrieved, _ := c.Blob.Get(ctx, height, namespace, b.Commitment)
+	fmt.Printf("Retrieved: %s\\n", string(retrieved.Data()))
 }`;
 
-const rustExample = `use reqwest::Client;
-use serde::{Deserialize, Serialize};
+const goModExample = `// go.mod
+module myapp
 
-#[derive(Serialize)]
-struct BlobRequest {
-    namespace: String,
-    data: String,
-    gas_limit: u64,
-}
+go 1.21
 
-#[derive(Deserialize)]
-struct BlobResponse {
-    tx_hash: String,
-    height: u64,
-}
+require (
+	github.com/celestiaorg/celestia-node v0.21.0
+	github.com/celestiaorg/go-square/v3 v3.0.0
+	github.com/cosmos/cosmos-sdk v0.50.0
+	github.com/joho/godotenv v1.5.1
+)`;
 
-async fn submit_blob(namespace: &str, data: &str) -> Result<BlobResponse, reqwest::Error> {
-    let client = Client::new();
-    let request = BlobRequest {
-        namespace: namespace.to_string(),
-        data: data.to_string(),
-        gas_limit: 80000,
-    };
+const rustExample = `// Cargo.toml dependencies:
+// lumina-node-wasm = "0.6"  # For WASM/browser
+// lumina-node = "0.6"       # For native
 
-    let response = client
-        .post("https://api.blobcell.dev/v1/blob")
-        .header("Authorization", "Bearer YOUR_API_KEY")
-        .json(&request)
-        .send()
-        .await?
-        .json::<BlobResponse>()
-        .await?;
+use lumina_node::blockstore::IndexedDbBlockstore;
+use lumina_node::network::Network;
+use lumina_node::node::{Node, NodeConfig};
+use celestia_types::{Blob, nmt::Namespace};
+use std::env;
 
-    println!("Tx Hash: {}", response.tx_hash);
-    Ok(response)
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Load from .env
+    dotenv::dotenv().ok();
+    let private_key = env::var("CELESTIA_PRIVATE_KEY")?;
+
+    // Configure for Mocha testnet
+    let config = NodeConfig::builder()
+        .network(Network::Mocha)
+        .private_key_hex(&private_key)
+        .build()?;
+
+    // Create light node
+    let node = Node::new(config).await?;
+
+    // Wait for sync
+    node.wait_connected().await?;
+
+    // Create and submit blob - fee grant covers fees!
+    let namespace = Namespace::new_v0(&[0x42, 0x6c, 0x6f, 0x62])?;
+    let data = b"hello from blobcell!";
+    let blob = Blob::new(namespace, data.to_vec(), 0)?;
+
+    let height = node.blob_submit(&[blob], None).await?;
+    println!("Blob submitted at height: {}", height);
+
+    // Retrieve to verify
+    let blobs = node.blob_get_all(height, &[namespace]).await?;
+    println!("Retrieved: {:?}", blobs);
+
+    Ok(())
 }`;
 
-const responseExample = `{
-  "success": true,
-  "txHash": "ABC123DEF456789...",
-  "height": 1234567,
-  "namespace": "your_namespace",
-  "commitment": "0x...",
-  "explorerUrl": "https://mocha.celenium.io/tx/ABC123..."
-}`;
+const rustCargoExample = `# Cargo.toml
+[package]
+name = "blobcell-example"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+lumina-node = "0.6"
+celestia-types = "0.6"
+tokio = { version = "1", features = ["full"] }
+dotenv = "0.15"`;
 
 export default function GetStartedPage() {
   const [activeTab, setActiveTab] = useState("go");
@@ -103,46 +169,69 @@ export default function GetStartedPage() {
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold mb-4">Get Started</h1>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Everything you need to start submitting blobs to Celestia with zero gas fees.
+              Start submitting blobs to Celestia. Your feegrant covers all transaction fees.
             </p>
           </div>
 
-          {/* Code Snippets Section */}
-          <section className="mb-16">
+          {/* Step 1: Environment Setup */}
+          <section className="mb-8">
             <Card className="glass">
               <CardHeader>
                 <div className="flex items-center gap-2">
-                  <Code className="w-5 h-5 text-primary" />
-                  <CardTitle>Quick Start</CardTitle>
+                  <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-primary font-mono font-bold">
+                    1
+                  </div>
+                  <CardTitle className="font-mono">Setup Environment</CardTitle>
                 </div>
                 <CardDescription>
-                  Copy these code snippets to start submitting blobs
+                  Create a <code className="text-primary">.env</code> file with your credentials
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Export Keys Section */}
+                <div className="p-4 rounded-lg bg-muted/50 border border-border">
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    <Key className="w-4 h-4 text-primary" />
+                    Get Your Private Key from Keplr
+                  </h4>
+                  <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
+                    <li>Open Keplr extension → Click <strong>account icon</strong> (top right)</li>
+                    <li>Select <strong>&quot;Show Private Key&quot;</strong></li>
+                    <li>Enter password and copy the key</li>
+                  </ol>
+                </div>
+
+                <CodeBlock
+                  code={envExample}
+                  language="bash"
+                  title=".env"
+                />
+
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                  <XCircle className="w-4 h-4 text-destructive flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-destructive">
+                    Never commit <code>.env</code> to git. Add it to <code>.gitignore</code>
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </section>
+
+          {/* Step 2: Code Snippets */}
+          <section className="mb-8">
+            <Card className="glass">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-primary font-mono font-bold">
+                    2
+                  </div>
+                  <CardTitle className="font-mono">Submit Your First Blob</CardTitle>
+                </div>
+                <CardDescription>
+                  Choose your language and start building
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {/* Export Keys Section */}
-                <div className="mb-6 p-4 rounded-lg bg-muted/50 border border-border">
-                  <h4 className="font-semibold mb-2 flex items-center gap-2">
-                    <Key className="w-4 h-4 text-primary" />
-                    Export Your Private Key
-                  </h4>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    To use BlobCell in your repos, export your private key from Keplr:
-                  </p>
-                  <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
-                    <li>Open Keplr extension and click the <strong>account icon</strong> (top right)</li>
-                    <li>Select <strong>&quot;Show Private Key&quot;</strong> from the menu</li>
-                    <li>Enter your password to reveal the key</li>
-                    <li>Copy and store securely as an environment variable:</li>
-                  </ol>
-                  <div className="mt-3 p-2 rounded bg-background font-mono text-xs">
-                    export CELESTIA_PRIVATE_KEY=&quot;your_private_key_here&quot;
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Never commit your private key to version control
-                  </p>
-                </div>
-
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
                   <TabsList className="mb-4">
                     <TabsTrigger value="go" className="gap-2">
@@ -156,30 +245,112 @@ export default function GetStartedPage() {
                   </TabsList>
 
                   <TabsContent value="go" className="space-y-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Terminal className="w-4 h-4 text-muted-foreground" />
+                      <code className="text-sm text-muted-foreground">
+                        go get github.com/celestiaorg/celestia-node/api/client
+                      </code>
+                    </div>
+                    <CodeBlock
+                      code={goModExample}
+                      language="go"
+                      title="go.mod"
+                    />
                     <CodeBlock
                       code={goExample}
                       language="go"
-                      title="Submit a blob with Go"
+                      title="main.go"
                     />
+                    <Button variant="outline" size="sm" asChild className="font-mono">
+                      <a
+                        href="https://github.com/celestiaorg/celestia-node/tree/main/api/client"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        Full Go Client Docs
+                      </a>
+                    </Button>
                   </TabsContent>
 
                   <TabsContent value="rust" className="space-y-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Terminal className="w-4 h-4 text-muted-foreground" />
+                      <code className="text-sm text-muted-foreground">
+                        cargo add lumina-node celestia-types
+                      </code>
+                    </div>
+                    <CodeBlock
+                      code={rustCargoExample}
+                      language="toml"
+                      title="Cargo.toml"
+                    />
                     <CodeBlock
                       code={rustExample}
                       language="rust"
-                      title="Submit a blob with Rust"
+                      title="src/main.rs"
                     />
+                    <Button variant="outline" size="sm" asChild className="font-mono">
+                      <a
+                        href="https://github.com/eigerco/lumina"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        Lumina Rust Client Docs
+                      </a>
+                    </Button>
                   </TabsContent>
                 </Tabs>
+              </CardContent>
+            </Card>
+          </section>
 
-                {/* Response Example */}
-                <div className="mt-6">
-                  <h4 className="text-sm font-medium mb-3 text-muted-foreground">Response</h4>
-                  <CodeBlock
-                    code={responseExample}
-                    language="json"
-                    title="Success Response"
-                  />
+          {/* Step 3: Run */}
+          <section className="mb-16">
+            <Card className="glass border-primary/30">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-primary font-mono font-bold">
+                    3
+                  </div>
+                  <CardTitle className="font-mono">Run & Verify</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="p-4 rounded-lg bg-muted/30 border border-border">
+                    <h4 className="font-mono font-semibold mb-2 flex items-center gap-2">
+                      <Terminal className="w-4 h-4 text-primary" />
+                      Go
+                    </h4>
+                    <code className="text-sm text-muted-foreground block">
+                      go run main.go
+                    </code>
+                  </div>
+                  <div className="p-4 rounded-lg bg-muted/30 border border-border">
+                    <h4 className="font-mono font-semibold mb-2 flex items-center gap-2">
+                      <Terminal className="w-4 h-4 text-primary" />
+                      Rust
+                    </h4>
+                    <code className="text-sm text-muted-foreground block">
+                      cargo run
+                    </code>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 border border-primary/20">
+                  <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
+                  <p className="text-sm">
+                    Your feegrant covers all transaction fees. Check your blob on{" "}
+                    <a
+                      href="https://mocha.celenium.io"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary underline"
+                    >
+                      Celenium Explorer
+                    </a>
+                  </p>
                 </div>
               </CardContent>
             </Card>
