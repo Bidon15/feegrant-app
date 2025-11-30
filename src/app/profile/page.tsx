@@ -20,18 +20,7 @@ import {
   RefreshCw,
   Activity,
 } from "lucide-react";
-
-// Format TIA amount from uTIA
-function formatTia(utia: number): string {
-  const tia = utia / 1000000;
-  return `${tia.toFixed(2)} TIA`;
-}
-
-// Truncate wallet address for display
-function truncateAddress(address: string): string {
-  if (address.length <= 20) return address;
-  return `${address.slice(0, 12)}...${address.slice(-8)}`;
-}
+import { formatTia, truncateAddress } from "~/lib/formatting";
 
 export default function ProfilePage() {
   const [isRefreshing, setIsRefreshing] = useState(false);

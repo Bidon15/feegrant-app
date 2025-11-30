@@ -17,12 +17,7 @@ import {
   Coins,
   TrendingUp,
 } from "lucide-react";
-
-// Truncate wallet address for display
-function truncateAddress(address: string): string {
-  if (address.length <= 20) return address;
-  return `${address.slice(0, 10)}...${address.slice(-6)}`;
-}
+import { truncateAddress } from "~/lib/formatting";
 
 export default function HtopPage() {
   const [sessionTime, setSessionTime] = useState(0);

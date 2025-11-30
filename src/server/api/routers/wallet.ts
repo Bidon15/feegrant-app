@@ -57,10 +57,6 @@ export const walletRouter = createTRPCRouter({
       const { address } = input;
 
       // Validate that the address is a valid Celestia address
-      console.log(
-        `Validating address: "${address}" (length: ${address.length}, starts with celestia1: ${address.startsWith("celestia1")})`
-      );
-
       if (
         !address.startsWith("celestia1") ||
         address.length < 39 ||

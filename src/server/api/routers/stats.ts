@@ -1,12 +1,7 @@
 import { createTRPCRouter, publicProcedure, protectedProcedure } from "~/server/api/trpc";
 import { COLLECTIONS, type User, type Address } from "~/server/db";
 import { getCelestiaClient } from "~/server/celestia/client";
-
-// Format TIA amount from uTIA
-function formatTia(utia: number): string {
-  const tia = utia / 1000000;
-  return `${tia.toFixed(2)} TIA`;
-}
+import { formatTia } from "~/lib/formatting";
 
 export const statsRouter = createTRPCRouter({
   // Get network-wide statistics

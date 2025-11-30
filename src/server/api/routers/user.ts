@@ -116,20 +116,9 @@ export const userRouter = createTRPCRouter({
       const messageHash = sha256(serializeSignDoc(signDoc));
 
       // Verify the signature
-      console.log("Verifying signature...");
-      console.log("Public key (hex):", publicKey);
-      console.log("Signature (hex):", signedNonce);
-      console.log(
-        "Message hash (hex):",
-        Buffer.from(messageHash).toString("hex")
-      );
-
       try {
         const publicKeyBytes = Buffer.from(publicKey, "hex");
         const signatureBytes = Buffer.from(signedNonce, "hex");
-
-        console.log("Public key bytes length:", publicKeyBytes.length);
-        console.log("Signature bytes length:", signatureBytes.length);
 
         let isValid;
 
@@ -153,16 +142,13 @@ export const userRouter = createTRPCRouter({
           );
         }
 
-        console.log("Signature verification result:", isValid);
-
         if (!isValid) {
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: "Invalid signature",
           });
         }
-      } catch (verifyError) {
-        console.error("Signature verification failed:", verifyError);
+      } catch {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "Signature verification failed",
