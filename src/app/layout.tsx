@@ -1,5 +1,6 @@
 import "~/styles/globals.css";
 import { type Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { TRPCReactProvider } from "~/trpc/react";
 import { Providers } from "~/app/_components/providers";
 import Navigation from "~/components/navigation";
@@ -34,6 +35,7 @@ export default function RootLayout({
             </TooltipProvider>
           </Providers>
         </TRPCReactProvider>
+        <Analytics />
       </body>
     </html>
   );
