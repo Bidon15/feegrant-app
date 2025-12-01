@@ -3,9 +3,10 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
 import { api } from "~/trpc/react";
 import {
   Wallet,
@@ -21,20 +22,56 @@ import {
   Activity,
   BookOpen,
   Code,
+  Github,
+  Box,
+  Copy,
+  Trash2,
 } from "lucide-react";
 import { formatTia, truncateAddress } from "~/lib/formatting";
 
 export default function ProfilePage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [newNamespaceName, setNewNamespaceName] = useState("");
+  const [isCreatingNamespace, setIsCreatingNamespace] = useState(false);
+  const [namespaceError, setNamespaceError] = useState<string | null>(null);
 
   // Fetch real user data from tRPC
   const { data: myStats, isLoading, refetch } = api.stats.myStats.useQuery();
   const { data: networkStats } = api.stats.network.useQuery();
+  const { data: namespaces, refetch: refetchNamespaces } = api.namespace.list.useQuery();
+
+  const createNamespace = api.namespace.create.useMutation({
+    onSuccess: () => {
+      setNewNamespaceName("");
+      setIsCreatingNamespace(false);
+      setNamespaceError(null);
+      void refetchNamespaces();
+    },
+    onError: (error) => {
+      setNamespaceError(error.message);
+    },
+  });
+
+  const deleteNamespace = api.namespace.delete.useMutation({
+    onSuccess: () => {
+      void refetchNamespaces();
+    },
+  });
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await refetch();
+    await Promise.all([refetch(), refetchNamespaces()]);
     setTimeout(() => setIsRefreshing(false), 500);
+  };
+
+  const handleCreateNamespace = () => {
+    if (!newNamespaceName.trim()) return;
+    setNamespaceError(null);
+    createNamespace.mutate({ name: newNamespaceName.toLowerCase().trim() });
+  };
+
+  const copyToClipboard = (text: string) => {
+    void navigator.clipboard.writeText(text);
   };
 
   if (isLoading) {
@@ -101,6 +138,17 @@ export default function ProfilePage() {
                   </Badge>
                 </div>
                 <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                  {user.githubLogin && (
+                    <a
+                      href={`https://github.com/${user.githubLogin}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 hover:text-primary transition-colors"
+                    >
+                      <Github className="w-4 h-4" />
+                      {user.githubLogin}
+                    </a>
+                  )}
                   {hasWallet && (
                     <span className="flex items-center gap-1">
                       <Wallet className="w-4 h-4" />
@@ -305,6 +353,128 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Namespaces Section */}
+        <Card className="glass mb-8">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="font-mono text-sm flex items-center gap-2">
+                  <Box className="w-4 h-4 text-primary" />
+                  <span className="text-primary">MY NAMESPACES</span>
+                </CardTitle>
+                <CardDescription className="mt-1">
+                  Create namespaces to organize your blob submissions
+                </CardDescription>
+              </div>
+              {!isCreatingNamespace && (
+                <Button
+                  size="sm"
+                  onClick={() => setIsCreatingNamespace(true)}
+                  className="font-mono"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  New
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            {/* Create namespace form */}
+            {isCreatingNamespace && (
+              <div className="mb-4 p-4 rounded-lg bg-muted/20 border border-border">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="myapp/production"
+                    value={newNamespaceName}
+                    onChange={(e) => setNewNamespaceName(e.target.value)}
+                    className="font-mono"
+                    onKeyDown={(e) => e.key === "Enter" && handleCreateNamespace()}
+                  />
+                  <Button
+                    onClick={handleCreateNamespace}
+                    disabled={createNamespace.isPending || !newNamespaceName.trim()}
+                    className="font-mono"
+                  >
+                    {createNamespace.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      "Create"
+                    )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setIsCreatingNamespace(false);
+                      setNewNamespaceName("");
+                      setNamespaceError(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+                {namespaceError && (
+                  <p className="text-sm text-destructive mt-2">{namespaceError}</p>
+                )}
+                <p className="text-xs text-muted-foreground mt-2">
+                  Use lowercase letters, numbers, and slashes for hierarchy (e.g., myapp/production)
+                </p>
+              </div>
+            )}
+
+            {/* Namespace list */}
+            {namespaces && namespaces.length > 0 ? (
+              <div className="space-y-3">
+                {namespaces.map((ns) => (
+                  <div
+                    key={ns.id}
+                    className="flex items-center justify-between p-4 rounded-lg bg-muted/20 border border-border/50 hover:bg-muted/30 transition-colors"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-medium">{ns.name}</span>
+                        <Badge variant={ns.isActive ? "default" : "secondary"} className="text-xs">
+                          {ns.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
+                        <span className="font-mono">ID: {ns.namespaceId.slice(0, 16)}...</span>
+                        <span>{ns.blobCount} blobs</span>
+                        {ns.description && <span>{ns.description}</span>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyToClipboard(ns.namespaceId)}
+                        title="Copy namespace ID"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteNamespace.mutate({ id: ns.id })}
+                        disabled={deleteNamespace.isPending}
+                        className="text-destructive hover:text-destructive"
+                        title="Delete namespace"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Box className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p>No namespaces yet</p>
+                <p className="text-xs mt-1">Create one to start organizing your blobs</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Start Building CTA - Show when wallet is active */}
         {hasWallet && wallet.isDusted && wallet.hasFeeGrant && (

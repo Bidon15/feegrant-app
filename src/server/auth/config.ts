@@ -40,6 +40,7 @@ export const authConfig = {
           email: profile.email,
           image: profile.avatar_url,
           githubId: profile.id.toString(),
+          githubLogin: profile.login, // GitHub username for profile URL
           githubCreated: new Date(profile.created_at),
         };
       },

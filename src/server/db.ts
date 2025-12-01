@@ -16,6 +16,7 @@ export const COLLECTIONS = {
 export interface User {
   id: string;
   githubId: string;
+  githubLogin: string; // GitHub username for profile URL
   githubCreated: string; // ISO date string
   name: string | null;
   email: string | null;

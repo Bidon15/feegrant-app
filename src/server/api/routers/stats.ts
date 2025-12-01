@@ -109,6 +109,7 @@ export const statsRouter = createTRPCRouter({
         email: user.email,
         image: user.image,
         githubId: user.githubId,
+        githubLogin: user.githubLogin,
         joinedAt: user.createdAt,
       },
       wallet: address

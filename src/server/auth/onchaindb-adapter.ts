@@ -29,11 +29,12 @@ export function OnChainDBAdapter(): Adapter {
       const now = nowISO();
 
       // Handle GitHub-specific fields from profile
-      const userData = data as AdapterUser & { githubId?: string; githubCreated?: Date };
+      const userData = data as AdapterUser & { githubId?: string; githubLogin?: string; githubCreated?: Date };
 
       const user: User = {
         id,
         githubId: userData.githubId ?? id,
+        githubLogin: userData.githubLogin ?? userData.name ?? "unknown",
         githubCreated: userData.githubCreated?.toISOString() ?? now,
         name: data.name ?? null,
         email: data.email ?? null,
