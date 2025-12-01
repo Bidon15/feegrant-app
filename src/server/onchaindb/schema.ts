@@ -228,12 +228,16 @@ export const INDEXES: IndexDefinition[] = [
     index_type: "hash",
   },
   {
-    name: "idx_accounts_provider_providerAccountId",
+    name: "idx_accounts_provider",
     collection: COLLECTIONS.accounts,
     field_name: "provider",
-    index_type: "composite",
-    fields: ["provider", "providerAccountId"],
-    options: { unique: true },
+    index_type: "hash",
+  },
+  {
+    name: "idx_accounts_providerAccountId",
+    collection: COLLECTIONS.accounts,
+    field_name: "providerAccountId",
+    index_type: "hash",
   },
 
   // Sessions collection indexes (CRITICAL - queried on every request)
@@ -301,12 +305,16 @@ export const INDEXES: IndexDefinition[] = [
 
   // Verification tokens collection indexes
   {
-    name: "idx_verification_tokens_identifier_token",
+    name: "idx_verification_tokens_identifier",
     collection: COLLECTIONS.verificationTokens,
     field_name: "identifier",
-    index_type: "composite",
-    fields: ["identifier", "token"],
-    options: { unique: true },
+    index_type: "hash",
+  },
+  {
+    name: "idx_verification_tokens_token",
+    collection: COLLECTIONS.verificationTokens,
+    field_name: "token",
+    index_type: "hash",
   },
 
   // Namespaces collection indexes
@@ -430,8 +438,9 @@ export async function initializeSchema(): Promise<SchemaInitResult> {
       result.collections.push({ name: config.name, created: true });
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      // Collection might already exist, which is fine
-      if (errorMsg.includes("already exists")) {
+      // Collection might already exist - 400 status or "already exists" message
+      // OnChainDB returns 400 when collection already exists
+      if (errorMsg.includes("already exists") || errorMsg.includes("400")) {
         console.log(`[OnChainDB Schema] Collection already exists: ${config.name}`);
         result.collections.push({ name: config.name, created: false, error: "already exists" });
       } else {
@@ -452,8 +461,8 @@ export async function initializeSchema(): Promise<SchemaInitResult> {
       result.indexes.push({ name: indexDef.name, created: true });
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      // Index might already exist, which is fine
-      if (errorMsg.includes("already exists")) {
+      // Index might already exist - 400 status or "already exists" message
+      if (errorMsg.includes("already exists") || errorMsg.includes("400")) {
         console.log(`[OnChainDB Schema] Index already exists: ${indexDef.name}`);
         result.indexes.push({ name: indexDef.name, created: false, error: "already exists" });
       } else {
