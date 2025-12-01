@@ -33,6 +33,12 @@ export const authConfig = {
     GitHubProvider({
       clientId: process.env.GITHUB_ID!,
       clientSecret: process.env.GITHUB_SECRET!,
+      authorization: {
+        params: {
+          // Request repo scope for read access to private repositories
+          scope: "read:user user:email repo",
+        },
+      },
       profile(profile) {
         return {
           id: profile.id.toString(),

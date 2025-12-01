@@ -28,6 +28,11 @@ import {
   Check,
   Trash2,
   Link as LinkIcon,
+  Star,
+  GitFork,
+  Lock,
+  Unlock,
+  FolderGit2,
 } from "lucide-react";
 import { formatTia, truncateAddress } from "~/lib/formatting";
 
@@ -37,11 +42,17 @@ export default function ProfilePage() {
   const [isCreatingNamespace, setIsCreatingNamespace] = useState(false);
   const [namespaceError, setNamespaceError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [showRepoSelector, setShowRepoSelector] = useState(false);
 
   // Fetch real user data from tRPC
   const { data: myStats, isLoading, refetch } = api.stats.myStats.useQuery();
   const { data: networkStats } = api.stats.network.useQuery();
   const { data: namespaces, refetch: refetchNamespaces } = api.namespace.list.useQuery();
+  const { data: linkedRepos, refetch: refetchLinkedRepos } = api.github.listLinked.useQuery();
+  const { data: availableRepos, isLoading: isLoadingRepos } = api.github.listRepos.useQuery(
+    { perPage: 50 },
+    { enabled: showRepoSelector }
+  );
 
   const createNamespace = api.namespace.create.useMutation({
     onSuccess: () => {
@@ -61,9 +72,21 @@ export default function ProfilePage() {
     },
   });
 
+  const linkRepo = api.github.link.useMutation({
+    onSuccess: () => {
+      void refetchLinkedRepos();
+    },
+  });
+
+  const unlinkRepo = api.github.unlink.useMutation({
+    onSuccess: () => {
+      void refetchLinkedRepos();
+    },
+  });
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await Promise.all([refetch(), refetchNamespaces()]);
+    await Promise.all([refetch(), refetchNamespaces(), refetchLinkedRepos()]);
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
@@ -491,6 +514,198 @@ export default function ProfilePage() {
                 <p className="text-xs mt-1">Create one to start organizing your blobs</p>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Linked GitHub Repos Section */}
+        <Card className="glass mb-8">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="font-mono text-sm flex items-center gap-2">
+                  <FolderGit2 className="w-4 h-4 text-primary" />
+                  <span className="text-primary">LINKED REPOSITORIES</span>
+                </CardTitle>
+                <CardDescription className="mt-1">
+                  Link your GitHub repos to show what you&apos;re building
+                </CardDescription>
+              </div>
+              {!showRepoSelector && (
+                <Button
+                  size="sm"
+                  onClick={() => setShowRepoSelector(true)}
+                  className="font-mono"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Link Repo
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            {/* Repo selector */}
+            {showRepoSelector && (
+              <div className="mb-4 p-4 rounded-lg bg-muted/20 border border-border">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium">Select a repository to link</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowRepoSelector(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+                {isLoadingRepos ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  </div>
+                ) : availableRepos && availableRepos.length > 0 ? (
+                  <div className="max-h-64 overflow-y-auto space-y-2">
+                    {availableRepos
+                      .filter((repo) => !repo.isLinked)
+                      .map((repo) => (
+                        <div
+                          key={repo.id}
+                          className="flex items-center justify-between p-3 rounded-lg bg-background/50 border border-border/50 hover:bg-muted/30 transition-colors"
+                        >
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            {repo.isPrivate ? (
+                              <Lock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                            ) : (
+                              <Unlock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                            )}
+                            <div className="min-w-0">
+                              <div className="font-mono text-sm truncate">{repo.fullName}</div>
+                              {repo.description && (
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {repo.description}
+                                </p>
+                              )}
+                              <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                                {repo.language && <span>{repo.language}</span>}
+                                <span className="flex items-center gap-1">
+                                  <Star className="w-3 h-3" />
+                                  {repo.stargazersCount}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <GitFork className="w-3 h-3" />
+                                  {repo.forksCount}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              linkRepo.mutate({
+                                repoId: repo.id,
+                                fullName: repo.fullName,
+                                name: repo.name,
+                                owner: repo.owner,
+                                description: repo.description,
+                                isPrivate: repo.isPrivate,
+                                htmlUrl: repo.htmlUrl,
+                                defaultBranch: repo.defaultBranch,
+                                language: repo.language,
+                                stargazersCount: repo.stargazersCount,
+                                forksCount: repo.forksCount,
+                              });
+                              setShowRepoSelector(false);
+                            }}
+                            disabled={linkRepo.isPending}
+                            className="flex-shrink-0"
+                          >
+                            {linkRepo.isPending ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <LinkIcon className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </div>
+                      ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-muted-foreground">
+                    <p className="text-sm">No repositories found</p>
+                    <p className="text-xs mt-1">Make sure you have granted repo access</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Linked repos list */}
+            {linkedRepos && linkedRepos.length > 0 ? (
+              <div className="space-y-3">
+                {linkedRepos.map((repo) => (
+                  <div
+                    key={repo.id}
+                    className="flex items-center justify-between p-4 rounded-lg bg-muted/20 border border-border/50 hover:bg-muted/30 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      {repo.isPrivate ? (
+                        <Lock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      ) : (
+                        <Unlock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      )}
+                      <div className="min-w-0">
+                        <a
+                          href={repo.htmlUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-mono font-medium hover:text-primary transition-colors flex items-center gap-1"
+                        >
+                          {repo.fullName}
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                        {repo.description && (
+                          <p className="text-xs text-muted-foreground truncate mt-1">
+                            {repo.description}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                          {repo.language && (
+                            <Badge variant="secondary" className="text-xs">
+                              {repo.language}
+                            </Badge>
+                          )}
+                          <span className="flex items-center gap-1">
+                            <Star className="w-3 h-3" />
+                            {repo.stargazersCount}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <GitFork className="w-3 h-3" />
+                            {repo.forksCount}
+                          </span>
+                          {repo.isPrivate && (
+                            <Badge variant="outline" className="text-xs">
+                              Private
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => unlinkRepo.mutate({ id: repo.id })}
+                      disabled={unlinkRepo.isPending}
+                      className="text-destructive hover:text-destructive flex-shrink-0"
+                      title="Unlink repository"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : !showRepoSelector ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <FolderGit2 className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p>No linked repositories</p>
+                <p className="text-xs mt-1">Link your GitHub repos to showcase your projects</p>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
 

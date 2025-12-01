@@ -10,6 +10,7 @@ export const COLLECTIONS = {
   addresses: "addresses",
   verificationTokens: "verification_tokens",
   namespaces: "namespaces",
+  linkedRepos: "linked_repos",
 } as const;
 
 // Type definitions for our data models
@@ -77,6 +78,25 @@ export interface Namespace {
   totalBytes: number;
   lastActivityAt: string | null;
   isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// LinkedRepo - GitHub repository linked to a user's BlobCell profile
+export interface LinkedRepo {
+  id: string;
+  userId: string;
+  repoId: number; // GitHub repo ID
+  fullName: string; // e.g., "owner/repo"
+  name: string; // e.g., "repo"
+  owner: string; // e.g., "owner"
+  description: string | null;
+  isPrivate: boolean;
+  htmlUrl: string;
+  defaultBranch: string;
+  language: string | null;
+  stargazersCount: number;
+  forksCount: number;
   createdAt: string;
   updatedAt: string;
 }
