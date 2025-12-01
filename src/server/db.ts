@@ -78,6 +78,7 @@ export interface Namespace {
   totalBytes: number;
   lastActivityAt: string | null;
   isActive: boolean;
+  linkedRepoId: string | null; // Reference to LinkedRepo.id (one repo can have many namespaces)
   createdAt: string;
   updatedAt: string;
 }

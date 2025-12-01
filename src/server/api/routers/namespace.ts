@@ -7,6 +7,7 @@ import {
   nowISO,
   type Namespace,
   type User,
+  type LinkedRepo,
 } from "~/server/db";
 import { randomBytes } from "crypto";
 import {
@@ -126,6 +127,7 @@ export const namespaceRouter = createTRPCRouter({
         totalBytes: 0,
         lastActivityAt: null,
         isActive: true,
+        linkedRepoId: null,
         createdAt: now,
         updatedAt: now,
       };
@@ -371,6 +373,97 @@ export const namespaceRouter = createTRPCRouter({
         COLLECTIONS.namespaces,
         { id: input.id },
         updates
+      );
+
+      return updated;
+    }),
+
+  // Link a namespace to a GitHub repo
+  linkToRepo: protectedProcedure
+    .input(
+      z.object({
+        namespaceId: z.string(),
+        linkedRepoId: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Verify namespace exists and user owns it
+      const namespace = await ctx.db.findUnique<Namespace>(
+        COLLECTIONS.namespaces,
+        { id: input.namespaceId }
+      );
+
+      if (!namespace) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Namespace not found",
+        });
+      }
+
+      if (namespace.userId !== ctx.session.user.id) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You don't have permission to link this namespace",
+        });
+      }
+
+      // Verify the linked repo exists and user owns it
+      const repo = await ctx.db.findUnique<LinkedRepo>(
+        COLLECTIONS.linkedRepos,
+        { id: input.linkedRepoId }
+      );
+
+      if (!repo) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Linked repository not found",
+        });
+      }
+
+      if (repo.userId !== ctx.session.user.id) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You don't have permission to use this repository",
+        });
+      }
+
+      // Update the namespace with the linked repo
+      const updated = await ctx.db.updateDocument<Namespace>(
+        COLLECTIONS.namespaces,
+        { id: input.namespaceId },
+        { linkedRepoId: input.linkedRepoId }
+      );
+
+      return updated;
+    }),
+
+  // Unlink a namespace from its repo
+  unlinkFromRepo: protectedProcedure
+    .input(z.object({ namespaceId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const namespace = await ctx.db.findUnique<Namespace>(
+        COLLECTIONS.namespaces,
+        { id: input.namespaceId }
+      );
+
+      if (!namespace) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Namespace not found",
+        });
+      }
+
+      if (namespace.userId !== ctx.session.user.id) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You don't have permission to unlink this namespace",
+        });
+      }
+
+      const updated = await ctx.db.updateDocument<Namespace>(
+        COLLECTIONS.namespaces,
+        { id: input.namespaceId },
+        { linkedRepoId: null }
       );
 
       return updated;

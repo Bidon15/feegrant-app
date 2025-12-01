@@ -84,6 +84,18 @@ export default function ProfilePage() {
     },
   });
 
+  const linkNamespaceToRepo = api.namespace.linkToRepo.useMutation({
+    onSuccess: () => {
+      void refetchNamespaces();
+    },
+  });
+
+  const unlinkNamespaceFromRepo = api.namespace.unlinkFromRepo.useMutation({
+    onSuccess: () => {
+      void refetchNamespaces();
+    },
+  });
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await Promise.all([refetch(), refetchNamespaces(), refetchLinkedRepos()]);
@@ -453,59 +465,124 @@ export default function ProfilePage() {
             {/* Namespace list */}
             {namespaces && namespaces.length > 0 ? (
               <div className="space-y-3">
-                {namespaces.map((ns) => (
-                  <div
-                    key={ns.id}
-                    className="p-4 rounded-lg bg-muted/20 border border-border/50 hover:bg-muted/30 transition-colors"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-medium">{ns.name}</span>
-                        <Badge variant={ns.isActive ? "default" : "secondary"} className="text-xs">
-                          {ns.isActive ? "Active" : "Inactive"}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">{ns.blobCount} blobs</span>
+                {namespaces.map((ns) => {
+                  const linkedRepo = linkedRepos?.find((r) => r.id === ns.linkedRepoId);
+                  return (
+                    <div
+                      key={ns.id}
+                      className="p-4 rounded-lg bg-muted/20 border border-border/50 hover:bg-muted/30 transition-colors"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-medium">{ns.name}</span>
+                          <Badge variant={ns.isActive ? "default" : "secondary"} className="text-xs">
+                            {ns.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">{ns.blobCount} blobs</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyToClipboard(ns.id, ns.namespaceId)}
+                            title="Copy namespace ID"
+                            className="h-8 px-2"
+                          >
+                            {copiedId === ns.id ? (
+                              <Check className="w-4 h-4 text-primary" />
+                            ) : (
+                              <Copy className="w-4 h-4" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteNamespace.mutate({ id: ns.id })}
+                            disabled={deleteNamespace.isPending}
+                            className="text-destructive hover:text-destructive h-8 px-2"
+                            title="Delete namespace"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => copyToClipboard(ns.id, ns.namespaceId)}
-                          title="Copy namespace ID"
-                          className="h-8 px-2"
-                        >
-                          {copiedId === ns.id ? (
-                            <Check className="w-4 h-4 text-primary" />
-                          ) : (
-                            <Copy className="w-4 h-4" />
-                          )}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => deleteNamespace.mutate({ id: ns.id })}
-                          disabled={deleteNamespace.isPending}
-                          className="text-destructive hover:text-destructive h-8 px-2"
-                          title="Delete namespace"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-muted-foreground">Namespace ID:</span>
+                        <code className="font-mono bg-muted/50 px-2 py-1 rounded text-primary break-all">
+                          {ns.namespaceId}
+                        </code>
+                        {copiedId === ns.id && (
+                          <span className="text-primary text-xs">Copied!</span>
+                        )}
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="text-muted-foreground">Namespace ID:</span>
-                      <code className="font-mono bg-muted/50 px-2 py-1 rounded text-primary break-all">
-                        {ns.namespaceId}
-                      </code>
-                      {copiedId === ns.id && (
-                        <span className="text-primary text-xs">Copied!</span>
+                      {ns.description && (
+                        <p className="text-xs text-muted-foreground mt-2">{ns.description}</p>
                       )}
+
+                      {/* Linked repo section */}
+                      <div className="mt-3 pt-3 border-t border-border/30">
+                        {linkedRepo ? (
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-xs">
+                              <FolderGit2 className="w-3.5 h-3.5 text-primary" />
+                              <span className="text-muted-foreground">Linked to:</span>
+                              <a
+                                href={linkedRepo.htmlUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-mono text-primary hover:underline flex items-center gap-1"
+                              >
+                                {linkedRepo.fullName}
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => unlinkNamespaceFromRepo.mutate({ namespaceId: ns.id })}
+                              disabled={unlinkNamespaceFromRepo.isPending}
+                              className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
+                            >
+                              Unlink
+                            </Button>
+                          </div>
+                        ) : linkedRepos && linkedRepos.length > 0 ? (
+                          <div className="flex items-center gap-2">
+                            <FolderGit2 className="w-3.5 h-3.5 text-muted-foreground" />
+                            <select
+                              className="text-xs bg-background border border-border rounded px-2 py-1 font-mono"
+                              defaultValue=""
+                              onChange={(e) => {
+                                if (e.target.value) {
+                                  linkNamespaceToRepo.mutate({
+                                    namespaceId: ns.id,
+                                    linkedRepoId: e.target.value,
+                                  });
+                                }
+                              }}
+                              disabled={linkNamespaceToRepo.isPending}
+                            >
+                              <option value="">Link to a repo...</option>
+                              {linkedRepos.map((repo) => (
+                                <option key={repo.id} value={repo.id}>
+                                  {repo.fullName}
+                                </option>
+                              ))}
+                            </select>
+                            {linkNamespaceToRepo.isPending && (
+                              <Loader2 className="w-3 h-3 animate-spin text-primary" />
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <FolderGit2 className="w-3.5 h-3.5" />
+                            <span>Link a GitHub repo first to connect it to this namespace</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    {ns.description && (
-                      <p className="text-xs text-muted-foreground mt-2">{ns.description}</p>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">

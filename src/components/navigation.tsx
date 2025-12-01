@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 import { Button } from "~/components/ui/button";
-import { Terminal, Menu, X, ChevronRight, User } from "lucide-react";
+import { Terminal, Menu, X, ChevronRight, User, LogOut } from "lucide-react";
 import { useState } from "react";
 
 const Navigation = () => {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { data: session } = useSession();
 
   const navLinks = [
     { href: "/", label: "home" },
@@ -56,12 +58,24 @@ const Navigation = () => {
               </div>
             ))}
             <div className="ml-4 pl-4 border-l border-border">
-              <Button asChild size="sm" className="font-mono glow-green">
-                <Link href="/auth">
-                  <ChevronRight className="w-4 h-4" />
-                  init
-                </Link>
-              </Button>
+              {session ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="font-mono"
+                  onClick={() => signOut({ callbackUrl: "/" })}
+                >
+                  <LogOut className="w-4 h-4 mr-1" />
+                  exit
+                </Button>
+              ) : (
+                <Button asChild size="sm" className="font-mono glow-green">
+                  <Link href="/auth">
+                    <ChevronRight className="w-4 h-4" />
+                    init
+                  </Link>
+                </Button>
+              )}
             </div>
           </div>
 
@@ -97,12 +111,26 @@ const Navigation = () => {
               </Link>
             ))}
             <div className="mt-4 pt-4 border-t border-border">
-              <Button asChild className="w-full font-mono glow-green">
-                <Link href="/auth" onClick={() => setMobileMenuOpen(false)}>
-                  <Terminal className="w-4 h-4" />
-                  ./init --start
-                </Link>
-              </Button>
+              {session ? (
+                <Button
+                  variant="outline"
+                  className="w-full font-mono"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    signOut({ callbackUrl: "/" });
+                  }}
+                >
+                  <LogOut className="w-4 h-4" />
+                  exit
+                </Button>
+              ) : (
+                <Button asChild className="w-full font-mono glow-green">
+                  <Link href="/auth" onClick={() => setMobileMenuOpen(false)}>
+                    <Terminal className="w-4 h-4" />
+                    ./init --start
+                  </Link>
+                </Button>
+              )}
             </div>
           </div>
         )}
