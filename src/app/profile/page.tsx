@@ -46,8 +46,13 @@ export default function ProfilePage() {
 
   // Fetch real user data from tRPC
   const { data: myStats, isLoading, refetch } = api.stats.myStats.useQuery();
-  const { data: networkStats } = api.stats.network.useQuery();
-  const { data: namespaces, refetch: refetchNamespaces } = api.namespace.list.useQuery();
+  const { data: namespaces, refetch: refetchNamespaces } = api.namespace.listWithActivity.useQuery();
+
+  // Check namespace availability as user types
+  const { data: availability, isLoading: checkingAvailability } = api.namespace.checkAvailability.useQuery(
+    { name: newNamespaceName },
+    { enabled: newNamespaceName.length >= 1 }
+  );
   const { data: linkedRepos, refetch: refetchLinkedRepos } = api.github.listLinked.useQuery();
   const { data: availableRepos, isLoading: isLoadingRepos } = api.github.listRepos.useQuery(
     { perPage: 50 },
@@ -354,40 +359,45 @@ export default function ProfilePage() {
           </Card>
         </div>
 
-        {/* Network Stats */}
-        {networkStats && (
+        {/* User Blob Stats */}
+        {namespaces && namespaces.length > 0 && (
           <Card className="glass-strong mb-8">
             <CardHeader>
               <CardTitle className="font-mono text-sm flex items-center gap-2">
                 <Activity className="w-4 h-4 text-primary" />
-                <span className="text-primary">NETWORK STATS</span>
+                <span className="text-primary">YOUR BLOB ACTIVITY</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center p-4 rounded-lg bg-muted/20">
                   <div className="text-2xl font-bold font-mono text-primary">
-                    {networkStats.users.total}
+                    {namespaces.reduce((acc, ns) => acc + ns.blobCount, 0)}
                   </div>
-                  <div className="text-xs text-muted-foreground">Total Users</div>
+                  <div className="text-xs text-muted-foreground">Total Blobs</div>
                 </div>
                 <div className="text-center p-4 rounded-lg bg-muted/20">
                   <div className="text-2xl font-bold font-mono text-accent">
-                    {networkStats.users.withAddress}
+                    {namespaces.length}
                   </div>
-                  <div className="text-xs text-muted-foreground">Connected Wallets</div>
+                  <div className="text-xs text-muted-foreground">Namespaces</div>
                 </div>
                 <div className="text-center p-4 rounded-lg bg-muted/20">
                   <div className="text-2xl font-bold font-mono text-[hsl(15_85%_55%)]">
-                    {networkStats.users.dusted}
+                    {namespaces.reduce((acc, ns) => {
+                      const bytes = ns.totalBytes || 0;
+                      return acc + bytes;
+                    }, 0) > 1024 * 1024
+                      ? `${(namespaces.reduce((acc, ns) => acc + (ns.totalBytes || 0), 0) / (1024 * 1024)).toFixed(1)} MB`
+                      : `${(namespaces.reduce((acc, ns) => acc + (ns.totalBytes || 0), 0) / 1024).toFixed(1)} KB`}
                   </div>
-                  <div className="text-xs text-muted-foreground">Dusted Wallets</div>
+                  <div className="text-xs text-muted-foreground">Total Data</div>
                 </div>
                 <div className="text-center p-4 rounded-lg bg-muted/20">
                   <div className="text-2xl font-bold font-mono">
-                    {networkStats.users.feegranted}
+                    {namespaces.filter((ns) => ns.linkedRepo).length}
                   </div>
-                  <div className="text-xs text-muted-foreground">Fee Granted</div>
+                  <div className="text-xs text-muted-foreground">Linked Repos</div>
                 </div>
               </div>
             </CardContent>
@@ -423,17 +433,20 @@ export default function ProfilePage() {
             {/* Create namespace form */}
             {isCreatingNamespace && (
               <div className="mb-4 p-4 rounded-lg bg-muted/20 border border-border">
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
+                  <span className="font-mono text-sm text-muted-foreground whitespace-nowrap">
+                    {myStats?.user?.githubLogin?.toLowerCase() ?? "user"}/
+                  </span>
                   <Input
                     placeholder="myapp/production"
                     value={newNamespaceName}
-                    onChange={(e) => setNewNamespaceName(e.target.value)}
+                    onChange={(e) => setNewNamespaceName(e.target.value.toLowerCase())}
                     className="font-mono"
                     onKeyDown={(e) => e.key === "Enter" && handleCreateNamespace()}
                   />
                   <Button
                     onClick={handleCreateNamespace}
-                    disabled={createNamespace.isPending || !newNamespaceName.trim()}
+                    disabled={createNamespace.isPending || !newNamespaceName.trim() || (availability && !availability.available)}
                     className="font-mono"
                   >
                     {createNamespace.isPending ? (
@@ -453,11 +466,34 @@ export default function ProfilePage() {
                     Cancel
                   </Button>
                 </div>
+
+                {/* Availability feedback */}
+                {newNamespaceName.length >= 1 && (
+                  <div className="mt-2 flex items-center gap-2 text-sm">
+                    {checkingAvailability ? (
+                      <span className="flex items-center gap-1 text-muted-foreground">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Checking availability...
+                      </span>
+                    ) : availability?.available ? (
+                      <span className="flex items-center gap-1 text-primary">
+                        <CheckCircle2 className="w-3 h-3" />
+                        <code className="font-mono text-xs">{availability.fullName}</code> is available
+                      </span>
+                    ) : availability ? (
+                      <span className="flex items-center gap-1 text-destructive">
+                        <XCircle className="w-3 h-3" />
+                        {availability.reason}
+                      </span>
+                    ) : null}
+                  </div>
+                )}
+
                 {namespaceError && (
                   <p className="text-sm text-destructive mt-2">{namespaceError}</p>
                 )}
                 <p className="text-xs text-muted-foreground mt-2">
-                  Use lowercase letters, numbers, and slashes for hierarchy (e.g., myapp/production)
+                  Namespace will be prefixed with your GitHub username for uniqueness
                 </p>
               </div>
             )}
@@ -466,7 +502,8 @@ export default function ProfilePage() {
             {namespaces && namespaces.length > 0 ? (
               <div className="space-y-3">
                 {namespaces.map((ns) => {
-                  const linkedRepo = linkedRepos?.find((r) => r.id === ns.linkedRepoId);
+                  // Use linkedRepo from the enriched data
+                  const linkedRepo = ns.linkedRepo;
                   return (
                     <div
                       key={ns.id}
@@ -478,7 +515,6 @@ export default function ProfilePage() {
                           <Badge variant={ns.isActive ? "default" : "secondary"} className="text-xs">
                             {ns.isActive ? "Active" : "Inactive"}
                           </Badge>
-                          <span className="text-xs text-muted-foreground">{ns.blobCount} blobs</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <Button
@@ -506,6 +542,25 @@ export default function ProfilePage() {
                           </Button>
                         </div>
                       </div>
+
+                      {/* Blob Stats Row */}
+                      <div className="flex items-center gap-4 mb-2 text-xs">
+                        <span className="flex items-center gap-1 text-primary">
+                          <Box className="w-3 h-3" />
+                          {ns.blobCount} blobs
+                        </span>
+                        <span className="flex items-center gap-1 text-muted-foreground">
+                          <Activity className="w-3 h-3" />
+                          {ns.totalBytesFormatted}
+                        </span>
+                        {ns.totalFees !== "0" && (
+                          <span className="flex items-center gap-1 text-muted-foreground">
+                            <Coins className="w-3 h-3" />
+                            {ns.totalFees} utia fees
+                          </span>
+                        )}
+                      </div>
+
                       <div className="flex items-center gap-2 text-xs">
                         <span className="text-muted-foreground">Namespace ID:</span>
                         <code className="font-mono bg-muted/50 px-2 py-1 rounded text-primary break-all">
@@ -535,6 +590,11 @@ export default function ProfilePage() {
                                 {linkedRepo.fullName}
                                 <ExternalLink className="w-3 h-3" />
                               </a>
+                              {linkedRepo.language && (
+                                <Badge variant="outline" className="text-xs">
+                                  {linkedRepo.language}
+                                </Badge>
+                              )}
                             </div>
                             <Button
                               variant="ghost"

@@ -1,7 +1,8 @@
 import { createTRPCRouter, publicProcedure, protectedProcedure } from "~/server/api/trpc";
-import { COLLECTIONS, type User, type Address } from "~/server/db";
+import { COLLECTIONS, type User, type Address, type Namespace } from "~/server/db";
 import { getCelestiaClient } from "~/server/celestia/client";
-import { formatTia } from "~/lib/formatting";
+import { formatTia, formatBytes } from "~/lib/formatting";
+import { getNamespaceStats } from "~/server/celenium/client";
 
 export const statsRouter = createTRPCRouter({
   // Get network-wide statistics
@@ -144,5 +145,55 @@ export const statsRouter = createTRPCRouter({
         error: error instanceof Error ? error.message : "Failed to fetch",
       };
     }
+  }),
+
+  // Get global blob stats across all namespaces (for htop)
+  globalBlobStats: publicProcedure.query(async ({ ctx }) => {
+    // Get all namespaces
+    const namespaces = await ctx.db.findMany<Namespace>(
+      COLLECTIONS.namespaces,
+      {},
+      { limit: 100 }
+    );
+
+    // Aggregate stats from Celenium
+    let totalBlobs = 0;
+    let totalBytes = 0;
+    let totalFees = 0;
+
+    const namespaceStats = await Promise.all(
+      namespaces.map(async (ns) => {
+        const stats = await getNamespaceStats(ns.namespaceId);
+        return {
+          namespaceId: ns.namespaceId,
+          name: ns.name,
+          blobsCount: stats?.blobs_count ?? 0,
+          size: stats?.size ?? 0,
+          fee: parseInt(stats?.fee ?? "0"),
+        };
+      })
+    );
+
+    // Sum up totals
+    for (const stats of namespaceStats) {
+      totalBlobs += stats.blobsCount;
+      totalBytes += stats.size;
+      totalFees += stats.fee;
+    }
+
+    // Get top namespaces by blob count
+    const topNamespaces = namespaceStats
+      .sort((a, b) => b.blobsCount - a.blobsCount)
+      .slice(0, 10);
+
+    return {
+      totalNamespaces: namespaces.length,
+      totalBlobs,
+      totalBytes,
+      totalBytesFormatted: formatBytes(totalBytes),
+      totalFees,
+      totalFeesFormatted: formatTia(totalFees),
+      topNamespaces,
+    };
   }),
 });

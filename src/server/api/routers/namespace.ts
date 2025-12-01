@@ -9,7 +9,7 @@ import {
   type User,
   type LinkedRepo,
 } from "~/server/db";
-import { randomBytes } from "crypto";
+import { createHash } from "crypto";
 import {
   getNamespace as getCeleniumNamespace,
   getNamespaceBlobs,
@@ -17,9 +17,12 @@ import {
   formatBytes,
 } from "~/server/celenium/client";
 
-// Generate a Celestia namespace ID (8 bytes, hex encoded)
-function generateNamespaceId(): string {
-  return randomBytes(8).toString("hex");
+// Generate a deterministic Celestia namespace ID from a name (8 bytes, hex encoded)
+// This ensures the same name always produces the same namespace ID
+function generateNamespaceIdFromName(name: string): string {
+  const hash = createHash("sha256").update(name).digest();
+  // Take first 8 bytes of the hash for namespace ID
+  return hash.subarray(0, 8).toString("hex");
 }
 
 export const namespaceRouter = createTRPCRouter({
@@ -85,43 +88,115 @@ export const namespaceRouter = createTRPCRouter({
       return namespace;
     }),
 
+  // Check namespace availability (for UI feedback)
+  checkAvailability: protectedProcedure
+    .input(z.object({ name: z.string() }))
+    .query(async ({ ctx, input }) => {
+      // Get user's github login for prefix
+      const user = await ctx.db.findUnique<User>(COLLECTIONS.users, {
+        id: ctx.session.user.id,
+      });
+
+      if (!user?.githubLogin) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "User github login not found",
+        });
+      }
+
+      // Build full namespace name with user prefix
+      const fullName = `${user.githubLogin.toLowerCase()}/${input.name}`;
+
+      // Check in our database first
+      const existingInDb = await ctx.db.findMany<Namespace>(
+        COLLECTIONS.namespaces,
+        { name: fullName },
+        { limit: 1 }
+      );
+
+      if (existingInDb.length > 0) {
+        return {
+          available: false,
+          fullName,
+          reason: "You already have a namespace with this name",
+        };
+      }
+
+      // Check on Celenium if namespace ID is already used on chain
+      // Note: We generate a deterministic namespace ID from the name
+      const potentialNamespaceId = generateNamespaceIdFromName(fullName);
+      const celeniumNs = await getCeleniumNamespace(potentialNamespaceId);
+
+      if (celeniumNs && celeniumNs.pfb_count > 0) {
+        return {
+          available: false,
+          fullName,
+          reason: "This namespace already has blobs on Celestia",
+        };
+      }
+
+      return {
+        available: true,
+        fullName,
+        reason: null,
+      };
+    }),
+
   // Create a new namespace
   create: protectedProcedure
     .input(
       z.object({
         name: z
           .string()
-          .min(3, "Name must be at least 3 characters")
+          .min(1, "Name must be at least 1 character")
           .max(50, "Name must be at most 50 characters")
           .regex(
             /^[a-z0-9]+(?:\/[a-z0-9-]+)*$/,
-            "Name must be lowercase, can contain slashes for hierarchy (e.g., myapp/production)"
+            "Name must be lowercase letters, numbers, and slashes (e.g., myapp/production)"
           ),
         description: z.string().max(200).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      // Check if namespace name already exists
+      // Get user's github login for prefix
+      const user = await ctx.db.findUnique<User>(COLLECTIONS.users, {
+        id: ctx.session.user.id,
+      });
+
+      if (!user?.githubLogin) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "User github login not found",
+        });
+      }
+
+      // Build full namespace name with user prefix
+      const fullName = `${user.githubLogin.toLowerCase()}/${input.name}`;
+
+      // Check if namespace name already exists for this user
       const existing = await ctx.db.findMany<Namespace>(
         COLLECTIONS.namespaces,
-        { name: input.name },
+        { name: fullName },
         { limit: 1 }
       );
 
       if (existing.length > 0) {
         throw new TRPCError({
           code: "CONFLICT",
-          message: "A namespace with this name already exists",
+          message: "You already have a namespace with this name",
         });
       }
+
+      // Generate deterministic namespace ID from the full name
+      const namespaceId = generateNamespaceIdFromName(fullName);
 
       // Create the namespace
       const now = nowISO();
       const namespace: Namespace = {
         id: generateId(),
         userId: ctx.session.user.id,
-        name: input.name,
-        namespaceId: generateNamespaceId(),
+        name: fullName,
+        namespaceId,
         description: input.description ?? null,
         blobCount: 0,
         totalBytes: 0,
@@ -468,4 +543,120 @@ export const namespaceRouter = createTRPCRouter({
 
       return updated;
     }),
+
+  // Get detailed activity for a namespace (blobs + linked repo)
+  getActivity: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const namespace = await ctx.db.findUnique<Namespace>(
+        COLLECTIONS.namespaces,
+        { id: input.id }
+      );
+
+      if (!namespace) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Namespace not found",
+        });
+      }
+
+      if (namespace.userId !== ctx.session.user.id) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You don't have access to this namespace",
+        });
+      }
+
+      // Get linked repo if any
+      let linkedRepo: LinkedRepo | null = null;
+      if (namespace.linkedRepoId) {
+        linkedRepo = await ctx.db.findUnique<LinkedRepo>(
+          COLLECTIONS.linkedRepos,
+          { id: namespace.linkedRepoId }
+        );
+      }
+
+      // Get blob activity from Celenium
+      const [celeniumNs, stats, recentBlobs] = await Promise.all([
+        getCeleniumNamespace(namespace.namespaceId),
+        getNamespaceStats(namespace.namespaceId),
+        getNamespaceBlobs(namespace.namespaceId, { limit: 5 }),
+      ]);
+
+      return {
+        namespace: {
+          ...namespace,
+          // Update with latest from Celenium
+          blobCount: celeniumNs?.pfb_count ?? stats?.blobs_count ?? namespace.blobCount,
+          totalBytes: celeniumNs?.size ?? stats?.size ?? namespace.totalBytes,
+          lastActivityAt: celeniumNs?.last_message_time ?? namespace.lastActivityAt,
+        },
+        linkedRepo: linkedRepo ? {
+          id: linkedRepo.id,
+          fullName: linkedRepo.fullName,
+          htmlUrl: linkedRepo.htmlUrl,
+          language: linkedRepo.language,
+          isPrivate: linkedRepo.isPrivate,
+        } : null,
+        stats: stats ? {
+          size: stats.size,
+          blobsCount: stats.blobs_count,
+          fee: stats.fee,
+          commitsCount: stats.commits_count,
+          sizeFormatted: formatBytes(stats.size),
+        } : null,
+        recentBlobs: recentBlobs.map((blob) => ({
+          height: blob.height,
+          time: blob.time,
+          size: blob.size,
+          sizeFormatted: formatBytes(blob.size),
+          commitment: blob.commitment,
+          txHash: blob.tx.hash,
+          status: blob.tx.status,
+        })),
+      };
+    }),
+
+  // Get activity summary for all user namespaces (for profile dashboard)
+  listWithActivity: protectedProcedure.query(async ({ ctx }) => {
+    const namespaces = await ctx.db.findMany<Namespace>(
+      COLLECTIONS.namespaces,
+      { userId: ctx.session.user.id },
+      { sort: { field: "createdAt", order: "desc" } }
+    );
+
+    // Get linked repos
+    const linkedRepos = await ctx.db.findMany<LinkedRepo>(
+      COLLECTIONS.linkedRepos,
+      { userId: ctx.session.user.id }
+    );
+    const repoMap = new Map(linkedRepos.map((r) => [r.id, r]));
+
+    // Enrich namespaces with activity data
+    const enriched = await Promise.all(
+      namespaces.map(async (ns) => {
+        // Get stats from Celenium
+        const stats = await getNamespaceStats(ns.namespaceId);
+        const linkedRepo = ns.linkedRepoId ? repoMap.get(ns.linkedRepoId) : null;
+
+        return {
+          ...ns,
+          // Update counts from Celenium
+          blobCount: stats?.blobs_count ?? ns.blobCount,
+          totalBytes: stats?.size ?? ns.totalBytes,
+          totalBytesFormatted: formatBytes(stats?.size ?? ns.totalBytes),
+          totalFees: stats?.fee ?? "0",
+          linkedRepo: linkedRepo ? {
+            id: linkedRepo.id,
+            fullName: linkedRepo.fullName,
+            htmlUrl: linkedRepo.htmlUrl,
+            language: linkedRepo.language,
+            isPrivate: linkedRepo.isPrivate,
+          } : null,
+        };
+      })
+    );
+
+    return enriched;
+  }),
 });

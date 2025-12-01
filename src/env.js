@@ -30,6 +30,9 @@ export const env = createEnv({
     ONCHAINDB_APP_ID: z.string(),
     ONCHAINDB_APP_API_KEY: z.string(),
     ONCHAINDB_APP_WALLET: z.string(),
+
+    // Celenium API (optional - uses mock data when not set)
+    CELENIUM_API_KEY: z.string().optional(),
   },
 
   /**
@@ -58,6 +61,7 @@ export const env = createEnv({
     ONCHAINDB_APP_ID: process.env.ONCHAINDB_APP_ID,
     ONCHAINDB_APP_API_KEY: process.env.ONCHAINDB_APP_API_KEY,
     ONCHAINDB_APP_WALLET: process.env.ONCHAINDB_APP_WALLET,
+    CELENIUM_API_KEY: process.env.CELENIUM_API_KEY,
     NEXT_PUBLIC_RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_ENDPOINT,
   },
   /**

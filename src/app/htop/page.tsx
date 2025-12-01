@@ -16,6 +16,8 @@ import {
   RefreshCw,
   Coins,
   TrendingUp,
+  Box,
+  Database,
 } from "lucide-react";
 import { truncateAddress } from "~/lib/formatting";
 
@@ -37,6 +39,10 @@ export default function HtopPage() {
 
   const { data: backendWallet } = api.stats.backendWallet.useQuery();
 
+  const { data: blobStats, refetch: refetchBlobStats } = api.stats.globalBlobStats.useQuery(undefined, {
+    refetchInterval: 30000,
+  });
+
   // Session time counter
   useEffect(() => {
     const interval = setInterval(() => {
@@ -56,6 +62,7 @@ export default function HtopPage() {
   const handleRefresh = () => {
     void refetchLeaderboard();
     void refetchStats();
+    void refetchBlobStats();
   };
 
   return (
@@ -171,6 +178,75 @@ export default function HtopPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Blob Stats */}
+        {blobStats && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <Card className="glass border-primary/20">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Box className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold font-mono">
+                      {blobStats.totalBlobs}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Total Blobs</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="glass border-accent/20">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-accent/10">
+                    <Database className="w-5 h-5 text-accent" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold font-mono">
+                      {blobStats.totalBytesFormatted}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Data Stored</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="glass border-[hsl(15_85%_55%)]/20">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-[hsl(15_85%_55%)]/10">
+                    <Activity className="w-5 h-5 text-[hsl(15_85%_55%)]" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold font-mono">
+                      {blobStats.totalNamespaces}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Namespaces</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="glass border-[hsl(35_90%_55%)]/20">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-[hsl(35_90%_55%)]/10">
+                    <Coins className="w-5 h-5 text-[hsl(35_90%_55%)]" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold font-mono">
+                      {blobStats.totalFeesFormatted}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Fees Spent</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Backend Wallet Status */}
         {backendWallet && (
