@@ -2,6 +2,60 @@ import { onchaindbClient, COLLECTIONS } from "~/server/db";
 import { env } from "~/env";
 import type { Index, CollectionSchema } from "@onchaindb/sdk";
 
+// Materialized view definitions for optimized queries
+export interface MaterializedViewDefinition {
+  name: string;
+  description: string;
+  source_collections: string[];
+  query: Record<string, unknown>;
+}
+
+export const MATERIALIZED_VIEWS: MaterializedViewDefinition[] = [
+  // Leaderboard view: Join users with addresses for fast leaderboard queries
+  {
+    name: "leaderboard_view",
+    description: "Pre-joined user and address data for leaderboard display",
+    source_collections: [COLLECTIONS.addresses, COLLECTIONS.users],
+    query: {
+      collection: COLLECTIONS.addresses,
+      join: {
+        collection: COLLECTIONS.users,
+        localField: "userId",
+        foreignField: "id",
+        as: "user",
+      },
+      select: [
+        "id",
+        "userId",
+        "bech32",
+        "isDusted",
+        "hasFeeGrant",
+        "feeAllowanceRemaining",
+        "createdAt",
+        "user.name",
+        "user.email",
+        "user.image",
+      ],
+      sort: { createdAt: -1 },
+      limit: 100,
+    },
+  },
+  // Network stats aggregation view
+  {
+    name: "network_stats_view",
+    description: "Aggregated network statistics",
+    source_collections: [COLLECTIONS.addresses],
+    query: {
+      collection: COLLECTIONS.addresses,
+      aggregate: {
+        total_addresses: { $count: "*" },
+        dusted_count: { $sum: { $cond: ["isDusted", 1, 0] } },
+        feegrant_count: { $sum: { $cond: ["hasFeeGrant", 1, 0] } },
+      },
+    },
+  },
+];
+
 // Collection schemas for data validation and structure
 export const SCHEMAS: Record<string, CollectionSchema> = {
   users: {
@@ -343,6 +397,7 @@ export interface SchemaInitResult {
   success: boolean;
   collections: { name: string; created: boolean; error?: string }[];
   indexes: { name: string; created: boolean; error?: string }[];
+  views: { name: string; created: boolean; error?: string }[];
   errors: string[];
 }
 
@@ -355,6 +410,7 @@ export async function initializeSchema(): Promise<SchemaInitResult> {
     success: true,
     collections: [],
     indexes: [],
+    views: [],
     errors: [],
   };
 
@@ -406,6 +462,50 @@ export async function initializeSchema(): Promise<SchemaInitResult> {
         result.errors.push(`Index ${indexDef.name}: ${errorMsg}`);
         result.success = false;
       }
+    }
+  }
+
+  // Step 3: Create materialized views via REST API
+  // Note: Views are not supported via SDK DatabaseManager, must use direct HTTP calls
+  console.log("[OnChainDB Schema] Creating materialized views...");
+  for (const viewDef of MATERIALIZED_VIEWS) {
+    try {
+      const response = await fetch(`${env.ONCHAINDB_ENDPOINT}/apps/${env.ONCHAINDB_APP_ID}/views`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-App-Key": env.ONCHAINDB_APP_API_KEY,
+        },
+        body: JSON.stringify({
+          name: viewDef.name,
+          source_collections: viewDef.source_collections,
+          query: viewDef.query,
+          description: viewDef.description,
+        }),
+      });
+
+      if (response.ok) {
+        console.log(`[OnChainDB Schema] Created view: ${viewDef.name}`);
+        result.views.push({ name: viewDef.name, created: true });
+      } else {
+        const errorData = await response.text();
+        // View might already exist, which is fine
+        if (errorData.includes("already exists") || response.status === 409) {
+          console.log(`[OnChainDB Schema] View already exists: ${viewDef.name}`);
+          result.views.push({ name: viewDef.name, created: false, error: "already exists" });
+        } else {
+          console.error(`[OnChainDB Schema] Failed to create view ${viewDef.name}:`, errorData);
+          result.views.push({ name: viewDef.name, created: false, error: errorData });
+          result.errors.push(`View ${viewDef.name}: ${errorData}`);
+          // Don't fail the whole init for view errors - they're optional optimizations
+        }
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error(`[OnChainDB Schema] Failed to create view ${viewDef.name}:`, errorMsg);
+      result.views.push({ name: viewDef.name, created: false, error: errorMsg });
+      result.errors.push(`View ${viewDef.name}: ${errorMsg}`);
+      // Don't fail the whole init for view errors - they're optional optimizations
     }
   }
 
