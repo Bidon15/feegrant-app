@@ -117,7 +117,7 @@ const Navigation = () => {
                   className="w-full font-mono"
                   onClick={() => {
                     setMobileMenuOpen(false);
-                    signOut({ callbackUrl: "/" });
+                    void signOut({ callbackUrl: "/" });
                   }}
                 >
                   <LogOut className="w-4 h-4" />
