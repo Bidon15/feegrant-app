@@ -25,7 +25,9 @@ import {
   Github,
   Box,
   Copy,
+  Check,
   Trash2,
+  Link as LinkIcon,
 } from "lucide-react";
 import { formatTia, truncateAddress } from "~/lib/formatting";
 
@@ -34,6 +36,7 @@ export default function ProfilePage() {
   const [newNamespaceName, setNewNamespaceName] = useState("");
   const [isCreatingNamespace, setIsCreatingNamespace] = useState(false);
   const [namespaceError, setNamespaceError] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Fetch real user data from tRPC
   const { data: myStats, isLoading, refetch } = api.stats.myStats.useQuery();
@@ -70,8 +73,10 @@ export default function ProfilePage() {
     createNamespace.mutate({ name: newNamespaceName.toLowerCase().trim() });
   };
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = (id: string, text: string) => {
     void navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   if (isLoading) {
@@ -428,41 +433,54 @@ export default function ProfilePage() {
                 {namespaces.map((ns) => (
                   <div
                     key={ns.id}
-                    className="flex items-center justify-between p-4 rounded-lg bg-muted/20 border border-border/50 hover:bg-muted/30 transition-colors"
+                    className="p-4 rounded-lg bg-muted/20 border border-border/50 hover:bg-muted/30 transition-colors"
                   >
-                    <div className="flex-1">
+                    <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <span className="font-mono font-medium">{ns.name}</span>
                         <Badge variant={ns.isActive ? "default" : "secondary"} className="text-xs">
                           {ns.isActive ? "Active" : "Inactive"}
                         </Badge>
+                        <span className="text-xs text-muted-foreground">{ns.blobCount} blobs</span>
                       </div>
-                      <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
-                        <span className="font-mono">ID: {ns.namespaceId.slice(0, 16)}...</span>
-                        <span>{ns.blobCount} blobs</span>
-                        {ns.description && <span>{ns.description}</span>}
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyToClipboard(ns.id, ns.namespaceId)}
+                          title="Copy namespace ID"
+                          className="h-8 px-2"
+                        >
+                          {copiedId === ns.id ? (
+                            <Check className="w-4 h-4 text-primary" />
+                          ) : (
+                            <Copy className="w-4 h-4" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteNamespace.mutate({ id: ns.id })}
+                          disabled={deleteNamespace.isPending}
+                          className="text-destructive hover:text-destructive h-8 px-2"
+                          title="Delete namespace"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => copyToClipboard(ns.namespaceId)}
-                        title="Copy namespace ID"
-                      >
-                        <Copy className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteNamespace.mutate({ id: ns.id })}
-                        disabled={deleteNamespace.isPending}
-                        className="text-destructive hover:text-destructive"
-                        title="Delete namespace"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="text-muted-foreground">Namespace ID:</span>
+                      <code className="font-mono bg-muted/50 px-2 py-1 rounded text-primary break-all">
+                        {ns.namespaceId}
+                      </code>
+                      {copiedId === ns.id && (
+                        <span className="text-primary text-xs">Copied!</span>
+                      )}
                     </div>
+                    {ns.description && (
+                      <p className="text-xs text-muted-foreground mt-2">{ns.description}</p>
+                    )}
                   </div>
                 ))}
               </div>
@@ -529,6 +547,16 @@ export default function ProfilePage() {
               </a>
             </Button>
           )}
+          <Button asChild variant="outline" className="font-mono">
+            <a
+              href="https://github.com/Bidon15/feegrant-app"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Github className="w-4 h-4 mr-2" />
+              BlobCell Repo
+            </a>
+          </Button>
         </div>
       </div>
     </div>
