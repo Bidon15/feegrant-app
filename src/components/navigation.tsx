@@ -63,7 +63,7 @@ const Navigation = () => {
                   size="sm"
                   variant="outline"
                   className="font-mono"
-                  onClick={() => signOut({ callbackUrl: "/" })}
+                  onClick={() => void signOut({ callbackUrl: "/", redirect: true })}
                 >
                   <LogOut className="w-4 h-4 mr-1" />
                   exit

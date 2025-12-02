@@ -168,10 +168,14 @@ export const db: DBClient = {
     query: Record<string, unknown>
   ): Promise<T | null> {
     try {
-      const result = await onchaindbClient.findUnique<T & Record<string, unknown>>(
+      const result = await onchaindbClient.findUnique<T & Record<string, unknown> & { _deleted?: boolean }>(
         collection,
         query
       );
+      // Filter out soft-deleted documents
+      if (result && result._deleted) {
+        return null;
+      }
       return result as T | null;
     } catch (error) {
       console.error(`[OnChainDB] findUnique error in ${collection}:`, error);
@@ -187,11 +191,12 @@ export const db: DBClient = {
     options?: FindManyOptions
   ): Promise<T[]> {
     try {
-      const result = await onchaindbClient.findMany<T>(collection, query, {
+      const result = await onchaindbClient.findMany<T & { _deleted?: boolean }>(collection, query, {
         limit: options?.limit,
         sort: options?.sort,
       });
-      return result;
+      // Filter out soft-deleted documents
+      return result.filter((item) => !item._deleted) as T[];
     } catch (error) {
       console.error(`[OnChainDB] findMany error in ${collection}:`, error);
       return [];
@@ -315,8 +320,10 @@ export const db: DBClient = {
     query: Record<string, unknown>
   ): Promise<number> {
     try {
-      const count = await onchaindbClient.countDocuments(collection, query);
-      return count;
+      // OnChainDB countDocuments doesn't support _deleted filter,
+      // so we need to use findMany and filter manually
+      const results = await onchaindbClient.findMany<{ _deleted?: boolean }>(collection, query, {});
+      return results.filter((item) => !item._deleted).length;
     } catch (error) {
       console.error(
         `[OnChainDB] countDocuments error in ${collection}:`,
