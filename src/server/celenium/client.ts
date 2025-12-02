@@ -86,13 +86,26 @@ export interface CeleniumNamespaceStats {
 // API client functions
 
 /**
+ * Pad a namespace ID to 56 characters (28 bytes hex) as required by Celenium API.
+ * Celestia v0 namespaces use 10 bytes for the user-defined portion,
+ * but the full namespace ID is 28 bytes (padded with leading zeros).
+ */
+function padNamespaceId(namespaceId: string): string {
+  // Remove any 0x prefix if present
+  const cleanId = namespaceId.startsWith("0x") ? namespaceId.slice(2) : namespaceId;
+  // Pad to 56 characters (28 bytes) with leading zeros
+  return cleanId.padStart(56, "0");
+}
+
+/**
  * Get namespace information by namespace ID (hex) and version
  * The namespace ID must be 56 characters hex and version is typically 0
  */
 export async function getNamespace(namespaceId: string, version = 0): Promise<CeleniumNamespace | null> {
   try {
-    // API requires /namespace/{id}/{version} format
-    const response = await fetch(`${CELENIUM_API_BASE}/namespace/${namespaceId}/${version}`, {
+    // API requires /namespace/{id}/{version} format with 56-char padded ID
+    const paddedId = padNamespaceId(namespaceId);
+    const response = await fetch(`${CELENIUM_API_BASE}/namespace/${paddedId}/${version}`, {
       headers: getHeaders(),
     });
     if (!response.ok) {
@@ -119,7 +132,8 @@ export async function getNamespaceBlobs(
     if (options?.offset) params.set("offset", String(options.offset));
 
     const version = options?.version ?? 0;
-    const url = `${CELENIUM_API_BASE}/namespace/${namespaceId}/${version}/blobs${params.toString() ? `?${params}` : ""}`;
+    const paddedId = padNamespaceId(namespaceId);
+    const url = `${CELENIUM_API_BASE}/namespace/${paddedId}/${version}/blobs${params.toString() ? `?${params}` : ""}`;
     const response = await fetch(url, {
       headers: getHeaders(),
     });
@@ -173,8 +187,9 @@ export async function getBlob(
   commitment: string
 ): Promise<CeleniumBlob | null> {
   try {
+    const paddedId = padNamespaceId(namespaceId);
     const response = await fetch(
-      `${CELENIUM_API_BASE}/blob/${namespaceId}/${commitment}`,
+      `${CELENIUM_API_BASE}/blob/${paddedId}/${commitment}`,
       {
         headers: getHeaders(),
       }
