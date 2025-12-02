@@ -71,9 +71,28 @@ export default function ProfilePage() {
     },
   });
 
+  const utils = api.useUtils();
   const deleteNamespace = api.namespace.delete.useMutation({
-    onSuccess: () => {
-      void refetchNamespaces();
+    onMutate: async ({ id }) => {
+      // Cancel outgoing refetches
+      await utils.namespace.listWithActivity.cancel();
+      // Snapshot the previous value
+      const previousNamespaces = utils.namespace.listWithActivity.getData();
+      // Optimistically remove the namespace
+      utils.namespace.listWithActivity.setData(undefined, (old) =>
+        old?.filter((ns) => ns.id !== id)
+      );
+      return { previousNamespaces };
+    },
+    onError: (error, _variables, context) => {
+      console.error("[Profile] Failed to delete namespace:", error);
+      // Rollback on error
+      if (context?.previousNamespaces) {
+        utils.namespace.listWithActivity.setData(undefined, context.previousNamespaces);
+      }
+    },
+    onSettled: () => {
+      void utils.namespace.listWithActivity.invalidate();
     },
   });
 
@@ -84,8 +103,26 @@ export default function ProfilePage() {
   });
 
   const unlinkRepo = api.github.unlink.useMutation({
-    onSuccess: () => {
-      void refetchLinkedRepos();
+    onMutate: async ({ id }) => {
+      // Cancel outgoing refetches
+      await utils.github.listLinked.cancel();
+      // Snapshot the previous value
+      const previousRepos = utils.github.listLinked.getData();
+      // Optimistically remove the repo
+      utils.github.listLinked.setData(undefined, (old) =>
+        old?.filter((repo) => repo.id !== id)
+      );
+      return { previousRepos };
+    },
+    onError: (error, _variables, context) => {
+      console.error("[Profile] Failed to unlink repo:", error);
+      // Rollback on error
+      if (context?.previousRepos) {
+        utils.github.listLinked.setData(undefined, context.previousRepos);
+      }
+    },
+    onSettled: () => {
+      void utils.github.listLinked.invalidate();
     },
   });
 
