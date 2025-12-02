@@ -632,20 +632,26 @@ export const namespaceRouter = createTRPCRouter({
     );
     const repoMap = new Map(linkedRepos.map((r) => [r.id, r]));
 
-    // Enrich namespaces with activity data
+    // Enrich namespaces with activity data from Celenium
     const enriched = await Promise.all(
       namespaces.map(async (ns) => {
-        // Get stats from Celenium
+        // Get stats from Celenium - this is the source of truth for on-chain activity
         const stats = await getNamespaceStats(ns.namespaceId);
         const linkedRepo = ns.linkedRepoId ? repoMap.get(ns.linkedRepoId) : null;
 
+        // hasOnChainActivity = true if Celenium has data for this namespace
+        // (meaning at least one blob has been submitted)
+        const hasOnChainActivity = stats !== null && stats.blobs_count > 0;
+
         return {
           ...ns,
-          // Update counts from Celenium
-          blobCount: stats?.blobs_count ?? ns.blobCount,
-          totalBytes: stats?.size ?? ns.totalBytes,
-          totalBytesFormatted: formatBytes(stats?.size ?? ns.totalBytes),
+          // Use Celenium data if available, otherwise show 0 (not local DB values)
+          blobCount: stats?.blobs_count ?? 0,
+          totalBytes: stats?.size ?? 0,
+          totalBytesFormatted: formatBytes(stats?.size ?? 0),
           totalFees: stats?.fee ?? "0",
+          // Flag to indicate if namespace has real on-chain activity
+          hasOnChainActivity,
           linkedRepo: linkedRepo ? {
             id: linkedRepo.id,
             fullName: linkedRepo.fullName,

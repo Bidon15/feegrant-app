@@ -409,15 +409,16 @@ export default function ProfilePage() {
           </Card>
         </div>
 
-        {/* User Blob Stats */}
+        {/* User Blob Stats - Only shows on-chain activity from Celenium */}
         {namespaces && namespaces.length > 0 && (() => {
           // Deduplicate namespaces by namespaceId for accurate stats
-          // Multiple local entries with same namespaceId = same on-chain namespace
           const uniqueNamespaces = Array.from(
             new Map(namespaces.map(ns => [ns.namespaceId, ns])).values()
           );
-          const totalBlobs = uniqueNamespaces.reduce((acc, ns) => acc + ns.blobCount, 0);
-          const totalBytes = uniqueNamespaces.reduce((acc, ns) => acc + (ns.totalBytes || 0), 0);
+          // Only count namespaces with actual on-chain activity (blobs submitted to Celestia)
+          const activeNamespaces = uniqueNamespaces.filter(ns => ns.hasOnChainActivity);
+          const totalBlobs = activeNamespaces.reduce((acc, ns) => acc + ns.blobCount, 0);
+          const totalBytes = activeNamespaces.reduce((acc, ns) => acc + (ns.totalBytes || 0), 0);
           const linkedReposCount = uniqueNamespaces.filter((ns) => ns.linkedRepo).length;
 
           return (
@@ -438,9 +439,9 @@ export default function ProfilePage() {
                   </div>
                   <div className="text-center p-4 rounded-lg bg-muted/20">
                     <div className="text-2xl font-bold font-mono text-accent">
-                      {uniqueNamespaces.length}
+                      {activeNamespaces.length}
                     </div>
-                    <div className="text-xs text-muted-foreground">Namespaces</div>
+                    <div className="text-xs text-muted-foreground">Active Namespaces</div>
                   </div>
                   <div className="text-center p-4 rounded-lg bg-muted/20">
                     <div className="text-2xl font-bold font-mono text-[hsl(15_85%_55%)]">

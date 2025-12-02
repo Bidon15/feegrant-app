@@ -1,6 +1,6 @@
 import { createClient, type OnChainDBClient as SDKClient } from "@onchaindb/sdk";
 import { env } from "~/env";
-import { createPaymentCallback, type PaymentQuote } from "~/server/onchaindb/payment";
+import { createPaymentCallback, executeDirectPayment, type PaymentQuote } from "~/server/onchaindb/payment";
 
 // Collection names matching our data model
 // Note: sessions are handled via JWT, not stored in database
@@ -285,21 +285,33 @@ export const db: DBClient = {
         query
       );
       if (!existing || existing.deleted) {
+        console.log(`[OnChainDB] deleteDocument: Document not found or already deleted in ${collection}`);
         return false;
       }
 
-      // Soft delete by marking as deleted using store (which handles payment callback)
-      // OnChainDB's deleteDocument requires upfront payment proof, but store() handles it via callback
-      await onchaindbClient.store(
-        {
-          collection,
-          data: [{ ...existing, deleted: true, updatedAt: nowISO() }],
-        },
-        createPaymentCallback() as (quote: PaymentQuote) => Promise<{ txHash: string; network?: string }>,
-        true
+      // Use SDK's deleteDocument method which properly marks as deleted
+      // First get a pricing quote to know how much to pay
+      const quote = await onchaindbClient.getPricingQuote({
+        app_id: env.ONCHAINDB_APP_ID,
+        operation_type: 'write',
+        size_kb: 1, // Minimal size for delete operation
+        collection,
+      });
+
+      console.log(`[OnChainDB] deleteDocument: Got quote for ${quote.total_cost_utia} utia`);
+
+      // Execute payment and get proof
+      const paymentProof = await executeDirectPayment(quote.total_cost_utia);
+
+      // Call SDK's deleteDocument with payment proof
+      const result = await onchaindbClient.deleteDocument(
+        collection,
+        query,
+        paymentProof
       );
 
-      return true;
+      console.log(`[OnChainDB] deleteDocument: Result = ${result}`);
+      return result;
     } catch (error) {
       console.error(
         `[OnChainDB] deleteDocument error in ${collection}:`,

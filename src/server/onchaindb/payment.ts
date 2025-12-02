@@ -21,6 +21,14 @@ export interface PaymentResponse {
   network?: string;
 }
 
+// Payment proof structure required by OnChainDB SDK for delete/update operations
+export interface PaymentProof {
+  payment_tx_hash: string;
+  user_address: string;
+  broker_address: string;
+  amount_utia: number;
+}
+
 /**
  * Execute payment for OnChainDB x402 flow
  *
@@ -86,5 +94,55 @@ export async function executeOnChainDBPayment(
 export function createPaymentCallback() {
   return async (quote: PaymentQuote): Promise<PaymentResponse> => {
     return executeOnChainDBPayment(quote);
+  };
+}
+
+/**
+ * Execute a direct payment for OnChainDB operations that require upfront payment
+ * (like deleteDocument which doesn't support callback pattern)
+ *
+ * Returns a payment proof that can be passed to SDK methods
+ */
+export async function executeDirectPayment(amountUtia: number): Promise<PaymentProof> {
+  const { client, address: backendAddr } = await getCelestiaClient();
+  const brokerAddress = env.ONCHAINDB_APP_WALLET;
+
+  console.log(`[OnChainDB Payment] Direct payment: ${amountUtia} utia to ${brokerAddress}`);
+
+  // Validate we have tokens to send
+  const balance = await client.getBalance(backendAddr, "utia");
+  if (parseInt(balance.amount) < amountUtia) {
+    throw new Error(
+      `Insufficient balance for OnChainDB payment. ` +
+      `Required: ${amountUtia} utia, Available: ${balance.amount} utia`
+    );
+  }
+
+  // Send payment to broker address
+  const fee = {
+    amount: [{ denom: "utia", amount: "5000" }],
+    gas: "100000",
+  };
+
+  const result = await client.sendTokens(
+    backendAddr,
+    brokerAddress,
+    [{ denom: "utia", amount: String(amountUtia) }],
+    fee,
+    `OnChainDB direct payment`
+  );
+
+  if (result.code !== 0) {
+    console.error(`[OnChainDB Payment] Transaction failed: code=${result.code}, log=${result.rawLog}`);
+    throw new Error(`OnChainDB payment failed: code=${result.code} log=${result.rawLog}`);
+  }
+
+  console.log(`[OnChainDB Payment] Direct payment successful: ${result.transactionHash}`);
+
+  return {
+    payment_tx_hash: result.transactionHash,
+    user_address: backendAddr,
+    broker_address: brokerAddress,
+    amount_utia: amountUtia,
   };
 }
