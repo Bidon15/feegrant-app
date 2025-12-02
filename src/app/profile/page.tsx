@@ -410,49 +410,57 @@ export default function ProfilePage() {
         </div>
 
         {/* User Blob Stats */}
-        {namespaces && namespaces.length > 0 && (
-          <Card className="glass-strong mb-8">
-            <CardHeader>
-              <CardTitle className="font-mono text-sm flex items-center gap-2">
-                <Activity className="w-4 h-4 text-primary" />
-                <span className="text-primary">YOUR BLOB ACTIVITY</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center p-4 rounded-lg bg-muted/20">
-                  <div className="text-2xl font-bold font-mono text-primary">
-                    {namespaces.reduce((acc, ns) => acc + ns.blobCount, 0)}
+        {namespaces && namespaces.length > 0 && (() => {
+          // Deduplicate namespaces by namespaceId for accurate stats
+          // Multiple local entries with same namespaceId = same on-chain namespace
+          const uniqueNamespaces = Array.from(
+            new Map(namespaces.map(ns => [ns.namespaceId, ns])).values()
+          );
+          const totalBlobs = uniqueNamespaces.reduce((acc, ns) => acc + ns.blobCount, 0);
+          const totalBytes = uniqueNamespaces.reduce((acc, ns) => acc + (ns.totalBytes || 0), 0);
+          const linkedReposCount = uniqueNamespaces.filter((ns) => ns.linkedRepo).length;
+
+          return (
+            <Card className="glass-strong mb-8">
+              <CardHeader>
+                <CardTitle className="font-mono text-sm flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-primary" />
+                  <span className="text-primary">YOUR BLOB ACTIVITY</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center p-4 rounded-lg bg-muted/20">
+                    <div className="text-2xl font-bold font-mono text-primary">
+                      {totalBlobs}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Total Blobs</div>
                   </div>
-                  <div className="text-xs text-muted-foreground">Total Blobs</div>
-                </div>
-                <div className="text-center p-4 rounded-lg bg-muted/20">
-                  <div className="text-2xl font-bold font-mono text-accent">
-                    {namespaces.length}
+                  <div className="text-center p-4 rounded-lg bg-muted/20">
+                    <div className="text-2xl font-bold font-mono text-accent">
+                      {uniqueNamespaces.length}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Namespaces</div>
                   </div>
-                  <div className="text-xs text-muted-foreground">Namespaces</div>
-                </div>
-                <div className="text-center p-4 rounded-lg bg-muted/20">
-                  <div className="text-2xl font-bold font-mono text-[hsl(15_85%_55%)]">
-                    {namespaces.reduce((acc, ns) => {
-                      const bytes = ns.totalBytes || 0;
-                      return acc + bytes;
-                    }, 0) > 1024 * 1024
-                      ? `${(namespaces.reduce((acc, ns) => acc + (ns.totalBytes || 0), 0) / (1024 * 1024)).toFixed(1)} MB`
-                      : `${(namespaces.reduce((acc, ns) => acc + (ns.totalBytes || 0), 0) / 1024).toFixed(1)} KB`}
+                  <div className="text-center p-4 rounded-lg bg-muted/20">
+                    <div className="text-2xl font-bold font-mono text-[hsl(15_85%_55%)]">
+                      {totalBytes > 1024 * 1024
+                        ? `${(totalBytes / (1024 * 1024)).toFixed(1)} MB`
+                        : `${(totalBytes / 1024).toFixed(1)} KB`}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Total Data</div>
                   </div>
-                  <div className="text-xs text-muted-foreground">Total Data</div>
-                </div>
-                <div className="text-center p-4 rounded-lg bg-muted/20">
-                  <div className="text-2xl font-bold font-mono">
-                    {namespaces.filter((ns) => ns.linkedRepo).length}
+                  <div className="text-center p-4 rounded-lg bg-muted/20">
+                    <div className="text-2xl font-bold font-mono">
+                      {linkedReposCount}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Linked Repos</div>
                   </div>
-                  <div className="text-xs text-muted-foreground">Linked Repos</div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         {/* Namespaces Section */}
         <Card className="glass mb-8">
