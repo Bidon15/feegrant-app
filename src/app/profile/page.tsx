@@ -34,7 +34,7 @@ import {
   Unlock,
   FolderGit2,
 } from "lucide-react";
-import { formatTia, truncateAddress } from "~/lib/formatting";
+import { formatTia } from "~/lib/formatting";
 
 export default function ProfilePage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -194,14 +194,27 @@ export default function ProfilePage() {
                       {user.githubLogin}
                     </a>
                   )}
-                  {hasWallet && (
-                    <span className="flex items-center gap-1">
-                      <Wallet className="w-4 h-4" />
-                      {truncateAddress(wallet.address)}
-                    </span>
-                  )}
                   <span>Joined {new Date(user.joinedAt).toLocaleDateString()}</span>
                 </div>
+                {hasWallet && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <Wallet className="w-4 h-4 text-muted-foreground" />
+                    <code className="font-mono text-xs bg-muted/50 px-2 py-1 rounded text-primary">
+                      {wallet.address}
+                    </code>
+                    <button
+                      onClick={() => copyToClipboard("wallet-address", wallet.address)}
+                      className="p-1 hover:bg-muted/50 rounded transition-colors"
+                      title="Copy address"
+                    >
+                      {copiedId === "wallet-address" ? (
+                        <Check className="w-4 h-4 text-primary" />
+                      ) : (
+                        <Copy className="w-4 h-4 text-muted-foreground hover:text-primary" />
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
             <Button
