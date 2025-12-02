@@ -99,12 +99,20 @@ export async function grantFeeAllowance(address: string) {
 
   console.log(`Broadcasting feegrant transaction...`);
 
-  const res = await client.signAndBroadcast(
-    backendAddr,
-    [msgGrantAllowanceEncodeObject],
-    fee,
-    "Grant fee allowance for transactions"
-  );
+  let res;
+  try {
+    res = await client.signAndBroadcast(
+      backendAddr,
+      [msgGrantAllowanceEncodeObject],
+      fee,
+      "Grant fee allowance for transactions"
+    );
+  } catch (broadcastError) {
+    console.error(`Feegrant broadcast error:`, broadcastError);
+    throw new Error(
+      `Fee grant broadcast failed: ${broadcastError instanceof Error ? broadcastError.message : String(broadcastError)}`
+    );
+  }
 
   console.log(
     `Transaction broadcast result: code=${res.code}, hash=${res.transactionHash}`
@@ -115,7 +123,7 @@ export async function grantFeeAllowance(address: string) {
     throw new Error(`Fee grant failed: code=${res.code} log=${res.rawLog}`);
   }
 
-  // Update database to track fee grant (use actual amount granted)
+  // Only update database AFTER successful transaction
   await db.updateDocument<Address>(
     COLLECTIONS.addresses,
     { bech32: address },

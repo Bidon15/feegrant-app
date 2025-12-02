@@ -12,11 +12,12 @@ const Navigation = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { data: session } = useSession();
 
+  // Base nav links - profile only shown when logged in
   const navLinks = [
     { href: "/", label: "home" },
     { href: "/get-started", label: "docs" },
     { href: "/htop", label: "htop" },
-    { href: "/profile", label: "profile" },
+    ...(session ? [{ href: "/profile", label: "profile" }] : []),
   ];
 
   return (

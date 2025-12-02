@@ -29,7 +29,15 @@ export async function sendDust(address: string) {
     "auto"
   );
 
-  // Update address to mark as dusted
+  // Verify transaction was successful before updating database
+  console.log(`Dust transaction result: code=${res.code}, hash=${res.transactionHash}`);
+
+  if (res.code !== 0) {
+    console.error(`Dust transaction failed: code=${res.code}, log=${res.rawLog}`);
+    throw new Error(`Dust transaction failed: code=${res.code} log=${res.rawLog}`);
+  }
+
+  // Only update address to mark as dusted AFTER successful transaction
   await db.updateDocument<Address>(
     COLLECTIONS.addresses,
     { bech32: address },

@@ -37,11 +37,38 @@ export const walletRouter = createTRPCRouter({
         };
       }
 
-      // Execute dust job directly
-      const dustResult = await executeDustJob(address);
+      // Execute dust job if not already dusted
+      let dustResult = { txHash: "already-dusted" };
+      if (!userAddress.isDusted) {
+        try {
+          dustResult = await executeDustJob(address);
+        } catch (dustError) {
+          console.error(`[Wallet] Dust failed for ${address}:`, dustError);
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: `Dust transaction failed: ${dustError instanceof Error ? dustError.message : "Unknown error"}`,
+          });
+        }
+      }
 
-      // Also grant fee allowance so user can pay for transactions
-      const feeGrantResult = await executeFeegrantJob(address);
+      // Only proceed with feegrant if dust was successful
+      let feeGrantResult = { txHash: "already-granted" };
+      if (!userAddress.hasFeeGrant) {
+        try {
+          feeGrantResult = await executeFeegrantJob(address);
+        } catch (feeGrantError) {
+          console.error(`[Wallet] Feegrant failed for ${address}:`, feeGrantError);
+          // Dust succeeded but feegrant failed - return partial success
+          // The user can retry feegrant later
+          return {
+            success: false,
+            txHash: dustResult.txHash,
+            feeGrantTxHash: null,
+            message: `Dust succeeded but feegrant failed: ${feeGrantError instanceof Error ? feeGrantError.message : "Unknown error"}`,
+            error: "FEEGRANT_FAILED",
+          };
+        }
+      }
 
       return {
         success: true,

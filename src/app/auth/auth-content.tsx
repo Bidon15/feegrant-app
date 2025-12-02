@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
@@ -43,6 +44,7 @@ const celestiaMochaConfig = {
 };
 
 export default function AuthContent() {
+  const router = useRouter();
   const { data: session, status: sessionStatus } = useSession();
   const [currentStep, setCurrentStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -109,6 +111,7 @@ export default function AuthContent() {
   }, []);
 
   // Determine current step based on state
+  // Redirect fully onboarded users to profile
   useEffect(() => {
     if (sessionStatus === "loading" || userLoading) return;
 
@@ -119,9 +122,10 @@ export default function AuthContent() {
     } else if (!user.address.isDusted || !user.address.hasFeeGrant) {
       setCurrentStep(2);
     } else {
-      setCurrentStep(3);
+      // User is fully set up - redirect to profile
+      router.push("/profile");
     }
-  }, [session, sessionStatus, user, userLoading]);
+  }, [session, sessionStatus, user, userLoading, router]);
 
   // Check for existing Keplr connection
   useEffect(() => {
