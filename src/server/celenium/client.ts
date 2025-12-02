@@ -86,15 +86,17 @@ export interface CeleniumNamespaceStats {
 // API client functions
 
 /**
- * Get namespace information by namespace ID (hex)
+ * Get namespace information by namespace ID (hex) and version
+ * The namespace ID must be 56 characters hex and version is typically 0
  */
-export async function getNamespace(namespaceId: string): Promise<CeleniumNamespace | null> {
+export async function getNamespace(namespaceId: string, version = 0): Promise<CeleniumNamespace | null> {
   try {
-    const response = await fetch(`${CELENIUM_API_BASE}/namespace/${namespaceId}`, {
+    // API requires /namespace/{id}/{version} format
+    const response = await fetch(`${CELENIUM_API_BASE}/namespace/${namespaceId}/${version}`, {
       headers: getHeaders(),
     });
     if (!response.ok) {
-      if (response.status === 404) return null;
+      if (response.status === 404 || response.status === 204) return null;
       throw new Error(`Celenium API error: ${response.status}`);
     }
     return await response.json() as CeleniumNamespace;
@@ -109,20 +111,21 @@ export async function getNamespace(namespaceId: string): Promise<CeleniumNamespa
  */
 export async function getNamespaceBlobs(
   namespaceId: string,
-  options?: { limit?: number; offset?: number }
+  options?: { limit?: number; offset?: number; version?: number }
 ): Promise<CeleniumBlobLog[]> {
   try {
     const params = new URLSearchParams();
     if (options?.limit) params.set("limit", String(options.limit));
     if (options?.offset) params.set("offset", String(options.offset));
 
-    const url = `${CELENIUM_API_BASE}/namespace/${namespaceId}/blobs${params.toString() ? `?${params}` : ""}`;
+    const version = options?.version ?? 0;
+    const url = `${CELENIUM_API_BASE}/namespace/${namespaceId}/${version}/blobs${params.toString() ? `?${params}` : ""}`;
     const response = await fetch(url, {
       headers: getHeaders(),
     });
 
     if (!response.ok) {
-      if (response.status === 404) return [];
+      if (response.status === 404 || response.status === 204) return [];
       throw new Error(`Celenium API error: ${response.status}`);
     }
 
@@ -190,24 +193,20 @@ export async function getBlob(
 }
 
 /**
- * Get namespace statistics (aggregated data)
+ * Get namespace statistics (from namespace info)
+ * Note: The Celenium API doesn't have a separate stats endpoint.
+ * Stats are included in the namespace response (pfb_count, size, etc.)
  */
-export async function getNamespaceStats(namespaceId: string): Promise<CeleniumNamespaceStats | null> {
-  try {
-    const response = await fetch(`${CELENIUM_API_BASE}/namespace/${namespaceId}/stats`, {
-      headers: getHeaders(),
-    });
+export async function getNamespaceStats(namespaceId: string, version = 0): Promise<CeleniumNamespaceStats | null> {
+  const ns = await getNamespace(namespaceId, version);
+  if (!ns) return null;
 
-    if (!response.ok) {
-      if (response.status === 404) return null;
-      throw new Error(`Celenium API error: ${response.status}`);
-    }
-
-    return await response.json() as CeleniumNamespaceStats;
-  } catch (error) {
-    console.error("[Celenium] getNamespaceStats error:", error);
-    return null;
-  }
+  return {
+    size: ns.size,
+    blobs_count: ns.pfb_count,
+    fee: "0", // Fee data not available in namespace response
+    commits_count: ns.pfb_count,
+  };
 }
 
 // Re-export formatBytes from shared utilities for convenience

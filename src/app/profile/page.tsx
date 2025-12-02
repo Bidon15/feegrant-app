@@ -619,39 +619,54 @@ export default function ProfilePage() {
                               Unlink
                             </Button>
                           </div>
-                        ) : linkedRepos && linkedRepos.length > 0 ? (
-                          <div className="flex items-center gap-2">
-                            <FolderGit2 className="w-3.5 h-3.5 text-muted-foreground" />
-                            <select
-                              className="text-xs bg-background border border-border rounded px-2 py-1 font-mono"
-                              defaultValue=""
-                              onChange={(e) => {
-                                if (e.target.value) {
-                                  linkNamespaceToRepo.mutate({
-                                    namespaceId: ns.id,
-                                    linkedRepoId: e.target.value,
-                                  });
-                                }
-                              }}
-                              disabled={linkNamespaceToRepo.isPending}
-                            >
-                              <option value="">Link to a repo...</option>
-                              {linkedRepos.map((repo) => (
-                                <option key={repo.id} value={repo.id}>
-                                  {repo.fullName}
-                                </option>
-                              ))}
-                            </select>
-                            {linkNamespaceToRepo.isPending && (
-                              <Loader2 className="w-3 h-3 animate-spin text-primary" />
-                            )}
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <FolderGit2 className="w-3.5 h-3.5" />
-                            <span>Link a GitHub repo first to connect it to this namespace</span>
-                          </div>
-                        )}
+                        ) : (() => {
+                          // Filter out repos that are already linked to other namespaces
+                          const linkedRepoIds = new Set(
+                            namespaces?.filter(n => n.linkedRepoId).map(n => n.linkedRepoId) ?? []
+                          );
+                          const availableReposForLinking = linkedRepos?.filter(
+                            repo => !linkedRepoIds.has(repo.id)
+                          ) ?? [];
+
+                          return availableReposForLinking.length > 0 ? (
+                            <div className="flex items-center gap-2">
+                              <FolderGit2 className="w-3.5 h-3.5 text-muted-foreground" />
+                              <select
+                                className="text-xs bg-background border border-border rounded px-2 py-1 font-mono"
+                                defaultValue=""
+                                onChange={(e) => {
+                                  if (e.target.value) {
+                                    linkNamespaceToRepo.mutate({
+                                      namespaceId: ns.id,
+                                      linkedRepoId: e.target.value,
+                                    });
+                                  }
+                                }}
+                                disabled={linkNamespaceToRepo.isPending}
+                              >
+                                <option value="">Link to a repo...</option>
+                                {availableReposForLinking.map((repo) => (
+                                  <option key={repo.id} value={repo.id}>
+                                    {repo.fullName}
+                                  </option>
+                                ))}
+                              </select>
+                              {linkNamespaceToRepo.isPending && (
+                                <Loader2 className="w-3 h-3 animate-spin text-primary" />
+                              )}
+                            </div>
+                          ) : linkedRepos && linkedRepos.length > 0 ? (
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <FolderGit2 className="w-3.5 h-3.5" />
+                              <span>All linked repos are already assigned to namespaces</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <FolderGit2 className="w-3.5 h-3.5" />
+                              <span>Link a GitHub repo first to connect it to this namespace</span>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   );
