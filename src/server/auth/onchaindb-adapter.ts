@@ -59,15 +59,25 @@ export function OnChainDBAdapter(): Adapter {
     },
 
     async getUserByAccount({ providerAccountId, provider }) {
+      console.log(`[Auth Adapter] getUserByAccount: provider=${provider}, providerAccountId=${providerAccountId}`);
       const account = await db.findUnique<Account>(COLLECTIONS.accounts, {
         provider,
         providerAccountId,
       });
 
-      if (!account) return null;
+      if (!account) {
+        console.log(`[Auth Adapter] Account not found`);
+        return null;
+      }
+      console.log(`[Auth Adapter] Account found for userId=${account.userId}`);
 
       const user = await db.findUnique<User>(COLLECTIONS.users, { id: account.userId });
-      return user ? toAdapterUser(user) : null;
+      if (!user) {
+        console.log(`[Auth Adapter] User not found for account`);
+        return null;
+      }
+      console.log(`[Auth Adapter] User found: ${user.name}`);
+      return toAdapterUser(user);
     },
 
     async updateUser(data) {
@@ -135,7 +145,9 @@ export function OnChainDBAdapter(): Adapter {
         expires: data.expires.toISOString(),
       };
 
+      console.log(`[Auth Adapter] Creating session for user ${data.userId}`);
       await db.createDocument(COLLECTIONS.sessions, session);
+      console.log(`[Auth Adapter] Session created with id ${id}`);
 
       return {
         id,
@@ -146,11 +158,20 @@ export function OnChainDBAdapter(): Adapter {
     },
 
     async getSessionAndUser(sessionToken) {
+      console.log(`[Auth Adapter] Getting session for token: ${sessionToken.substring(0, 10)}...`);
       const session = await db.findUnique<Session>(COLLECTIONS.sessions, { sessionToken });
-      if (!session) return null;
+      if (!session) {
+        console.log(`[Auth Adapter] Session not found`);
+        return null;
+      }
+      console.log(`[Auth Adapter] Session found for user ${session.userId}`);
 
       const user = await db.findUnique<User>(COLLECTIONS.users, { id: session.userId });
-      if (!user) return null;
+      if (!user) {
+        console.log(`[Auth Adapter] User not found for session`);
+        return null;
+      }
+      console.log(`[Auth Adapter] User found: ${user.name}`);
 
       return {
         session: {

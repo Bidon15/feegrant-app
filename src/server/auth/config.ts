@@ -62,4 +62,9 @@ export const authConfig = {
       },
     }),
   },
+  pages: {
+    signIn: "/auth",
+    error: "/auth", // Redirect errors back to auth page
+  },
+  debug: process.env.NODE_ENV === "development",
 } satisfies NextAuthConfig;

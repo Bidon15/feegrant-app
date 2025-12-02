@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
@@ -45,10 +45,31 @@ const celestiaMochaConfig = {
 
 export default function AuthContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session, status: sessionStatus } = useSession();
   const [currentStep, setCurrentStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Check for NextAuth error in URL params
+  useEffect(() => {
+    const authError = searchParams.get("error");
+    if (authError) {
+      const errorMessages: Record<string, string> = {
+        OAuthSignin: "Error starting GitHub sign in. Please try again.",
+        OAuthCallback: "Error during GitHub callback. Please try again.",
+        OAuthCreateAccount: "Could not create account. Please try again.",
+        EmailCreateAccount: "Could not create account with email.",
+        Callback: "Error during authentication callback.",
+        OAuthAccountNotLinked: "This email is already linked to another account.",
+        SessionRequired: "Please sign in to continue.",
+        Default: "An authentication error occurred. Please try again.",
+      };
+      setError(errorMessages[authError] ?? errorMessages.Default ?? "Authentication error");
+      // Clear the error from URL
+      router.replace("/auth", { scroll: false });
+    }
+  }, [searchParams, router]);
 
   // Keplr state
   const [isKeplrAvailable, setIsKeplrAvailable] = useState(false);
