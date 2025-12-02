@@ -3,10 +3,10 @@ import { env } from "~/env";
 import { createPaymentCallback, type PaymentQuote } from "~/server/onchaindb/payment";
 
 // Collection names matching our data model
+// Note: sessions are handled via JWT, not stored in database
 export const COLLECTIONS = {
   users: "users",
   accounts: "accounts",
-  sessions: "sessions",
   addresses: "addresses",
   verificationTokens: "verification_tokens",
   namespaces: "namespaces",
@@ -43,12 +43,7 @@ export interface Account {
   refresh_token_expires_in: number | null;
 }
 
-export interface Session {
-  id: string;
-  sessionToken: string;
-  userId: string;
-  expires: string; // ISO date string
-}
+// Sessions are handled via JWT cookies, not stored in database
 
 export interface Address {
   id: string;

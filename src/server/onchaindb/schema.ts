@@ -101,24 +101,7 @@ export const SCHEMAS: Record<string, CollectionSchema> = {
     ],
   },
 
-  sessions: {
-    fields: {
-      id: { type: "string", required: true, unique: true },
-      sessionToken: { type: "string", required: true, unique: true },
-      userId: { type: "string", required: true, index: true },
-      expires: { type: "string", required: true },
-    },
-    required: ["id", "sessionToken", "userId", "expires"],
-    relationships: [
-      {
-        type: "one-to-many",
-        collection: "users",
-        localField: "userId",
-        foreignField: "id",
-        cascade: true,
-      },
-    ],
-  },
+  // Note: sessions are handled via JWT cookies, not stored in database
 
   addresses: {
     fields: {
@@ -240,33 +223,7 @@ export const INDEXES: IndexDefinition[] = [
     index_type: "hash",
   },
 
-  // Sessions collection indexes (CRITICAL - queried on every request)
-  {
-    name: "idx_sessions_id",
-    collection: COLLECTIONS.sessions,
-    field_name: "id",
-    index_type: "hash",
-    options: { unique: true },
-  },
-  {
-    name: "idx_sessions_sessionToken",
-    collection: COLLECTIONS.sessions,
-    field_name: "sessionToken",
-    index_type: "hash",
-    options: { unique: true },
-  },
-  {
-    name: "idx_sessions_userId",
-    collection: COLLECTIONS.sessions,
-    field_name: "userId",
-    index_type: "hash",
-  },
-  {
-    name: "idx_sessions_expires",
-    collection: COLLECTIONS.sessions,
-    field_name: "expires",
-    index_type: "btree",
-  },
+  // Note: sessions are handled via JWT cookies, not stored in database
 
   // Addresses collection indexes
   {
@@ -374,12 +331,7 @@ export const COLLECTION_CONFIGS = [
     primary_column: "id",
     sort_column: "userId",
   },
-  {
-    name: COLLECTIONS.sessions,
-    namespace: `${env.ONCHAINDB_APP_ID}_sessions`,
-    primary_column: "id",
-    sort_column: "expires",
-  },
+  // Note: sessions are handled via JWT cookies, not stored in database
   {
     name: COLLECTIONS.addresses,
     namespace: `${env.ONCHAINDB_APP_ID}_addresses`,

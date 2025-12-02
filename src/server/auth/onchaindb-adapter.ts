@@ -6,7 +6,6 @@ import {
   nowISO,
   type User,
   type Account,
-  type Session,
   type VerificationToken,
 } from "~/server/db";
 
@@ -21,7 +20,12 @@ function toAdapterUser(user: User): AdapterUser {
   };
 }
 
-
+/**
+ * OnChainDB Adapter for NextAuth
+ *
+ * Note: Session methods are not implemented because we use JWT strategy.
+ * Sessions are stored in encrypted cookies, not in the database.
+ */
 export function OnChainDBAdapter(): Adapter {
   return {
     async createUser(data) {
@@ -109,7 +113,6 @@ export function OnChainDBAdapter(): Adapter {
     async deleteUser(userId) {
       // Delete associated data first
       await db.deleteDocument(COLLECTIONS.accounts, { userId });
-      await db.deleteDocument(COLLECTIONS.sessions, { userId });
       await db.deleteDocument(COLLECTIONS.users, { id: userId });
     },
 
@@ -150,84 +153,22 @@ export function OnChainDBAdapter(): Adapter {
       });
     },
 
-    async createSession(data) {
-      const id = generateId();
-      const session: Session = {
-        id,
-        sessionToken: data.sessionToken,
-        userId: data.userId,
-        expires: data.expires.toISOString(),
-      };
-
-      console.log(`[Auth Adapter] Creating session for user ${data.userId}`);
-      await db.createDocument(COLLECTIONS.sessions, session);
-      console.log(`[Auth Adapter] Session created with id ${id}`);
-
-      return {
-        id,
-        sessionToken: session.sessionToken,
-        userId: session.userId,
-        expires: new Date(session.expires),
-      };
+    // Session methods - not used with JWT strategy
+    // These are required by the Adapter interface but won't be called
+    async createSession() {
+      throw new Error("createSession not implemented - using JWT strategy");
     },
 
-    async getSessionAndUser(sessionToken) {
-      console.log(`[Auth Adapter] Getting session for token: ${sessionToken.substring(0, 10)}...`);
-      let session: Session | null = null;
-      try {
-        session = await db.findUnique<Session>(COLLECTIONS.sessions, { sessionToken });
-      } catch (error) {
-        console.error(`[Auth Adapter] Error finding session:`, error);
-        return null;
-      }
-      if (!session) {
-        console.log(`[Auth Adapter] Session not found (null result)`);
-        return null;
-      }
-      console.log(`[Auth Adapter] Session found for user ${session.userId}`);
-
-      const user = await db.findUnique<User>(COLLECTIONS.users, { id: session.userId });
-      if (!user) {
-        console.log(`[Auth Adapter] User not found for session`);
-        return null;
-      }
-      console.log(`[Auth Adapter] User found: ${user.name}`);
-
-      return {
-        session: {
-          id: session.id,
-          sessionToken: session.sessionToken,
-          userId: session.userId,
-          expires: new Date(session.expires),
-        },
-        user: toAdapterUser(user),
-      };
+    async getSessionAndUser() {
+      throw new Error("getSessionAndUser not implemented - using JWT strategy");
     },
 
-    async updateSession(data) {
-      const { sessionToken, ...updateData } = data;
-
-      const existingSession = await db.findUnique<Session>(COLLECTIONS.sessions, { sessionToken });
-      if (!existingSession) return null;
-
-      const updatedSession: Session = {
-        ...existingSession,
-        expires: updateData.expires?.toISOString() ?? existingSession.expires,
-        userId: updateData.userId ?? existingSession.userId,
-      };
-
-      await db.updateDocument<Session>(COLLECTIONS.sessions, { sessionToken }, updatedSession);
-
-      return {
-        id: updatedSession.id,
-        sessionToken: updatedSession.sessionToken,
-        userId: updatedSession.userId,
-        expires: new Date(updatedSession.expires),
-      };
+    async updateSession() {
+      throw new Error("updateSession not implemented - using JWT strategy");
     },
 
-    async deleteSession(sessionToken) {
-      await db.deleteDocument(COLLECTIONS.sessions, { sessionToken });
+    async deleteSession() {
+      // No-op for JWT strategy - session is in the cookie
     },
 
     async createVerificationToken(data) {

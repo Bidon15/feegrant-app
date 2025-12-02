@@ -53,12 +53,26 @@ export const authConfig = {
     }),
   ],
   adapter: OnChainDBAdapter(),
+  // Use JWT strategy to avoid eventual consistency issues with OnChainDB
+  // The adapter is still used for user/account storage, but sessions are in JWT
+  session: {
+    strategy: "jwt",
+  },
   callbacks: {
-    session: ({ session, user }) => ({
+    // JWT callback - called when JWT is created or updated
+    jwt: async ({ token, user }) => {
+      if (user) {
+        // First time sign in - add user id to token
+        token.id = user.id;
+      }
+      return token;
+    },
+    // Session callback - called when session is checked
+    session: ({ session, token }) => ({
       ...session,
       user: {
         ...session.user,
-        id: user.id,
+        id: token.id as string,
       },
     }),
   },
