@@ -70,3 +70,86 @@ export async function getBackendAddress(): Promise<string> {
   const { address } = await getCelestiaClient();
   return address;
 }
+
+// REST API for querying feegrants
+const CELESTIA_REST_API = "https://celestia-testnet-api.polkachu.com";
+
+interface FeegrantAllowanceResponse {
+  allowance: {
+    granter: string;
+    grantee: string;
+    allowance: {
+      "@type": string;
+      spend_limit?: Array<{ denom: string; amount: string }>;
+      expiration?: string | null;
+      // For AllowedMsgAllowance, the actual allowance is nested
+      allowance?: {
+        "@type": string;
+        spend_limit?: Array<{ denom: string; amount: string }>;
+        expiration?: string | null;
+      };
+      allowed_messages?: string[];
+    };
+  };
+}
+
+/**
+ * Query the remaining feegrant allowance for a grantee from a specific granter.
+ * Returns the remaining allowance in utia, or null if no grant exists.
+ */
+export async function getFeegrantAllowance(
+  granter: string,
+  grantee: string
+): Promise<{ remaining: string; spendLimit: string | null; expiration: string | null } | null> {
+  try {
+    const response = await fetch(
+      `${CELESTIA_REST_API}/cosmos/feegrant/v1beta1/allowance/${granter}/${grantee}`
+    );
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return null;
+      }
+      // Check for "fee-grant not found" error in the response body
+      const errorBody = await response.text();
+      if (errorBody.includes("fee-grant not found") || errorBody.includes("not found")) {
+        return null;
+      }
+      console.error(`[Celestia] getFeegrantAllowance error: ${response.status}`, errorBody);
+      return null;
+    }
+
+    const data = (await response.json()) as FeegrantAllowanceResponse;
+    const allowance = data.allowance?.allowance;
+
+    if (!allowance) {
+      return null;
+    }
+
+    // Handle both BasicAllowance and AllowedMsgAllowance types
+    let spendLimit: Array<{ denom: string; amount: string }> | undefined;
+    let expiration: string | null = null;
+
+    if (allowance["@type"] === "/cosmos.feegrant.v1beta1.AllowedMsgAllowance") {
+      // Nested allowance structure
+      spendLimit = allowance.allowance?.spend_limit;
+      expiration = allowance.allowance?.expiration ?? null;
+    } else {
+      // Direct BasicAllowance
+      spendLimit = allowance.spend_limit;
+      expiration = allowance.expiration ?? null;
+    }
+
+    // Find utia amount
+    const utiaAllowance = spendLimit?.find((coin) => coin.denom === "utia");
+
+    return {
+      remaining: utiaAllowance?.amount ?? "0",
+      spendLimit: utiaAllowance?.amount ?? null,
+      expiration,
+    };
+  } catch (error) {
+    console.error("[Celestia] getFeegrantAllowance error:", error);
+    return null;
+  }
+}

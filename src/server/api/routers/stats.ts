@@ -1,6 +1,6 @@
 import { createTRPCRouter, publicProcedure, protectedProcedure } from "~/server/api/trpc";
 import { COLLECTIONS, type User, type Address, type Namespace } from "~/server/db";
-import { getCelestiaClient } from "~/server/celestia/client";
+import { getCelestiaClient, getBackendAddress, getFeegrantAllowance } from "~/server/celestia/client";
 import { formatTia, formatBytes } from "~/lib/formatting";
 import { getNamespaceStats } from "~/server/celenium/client";
 
@@ -39,6 +39,9 @@ export const statsRouter = createTRPCRouter({
       { limit: 50, sort: { field: "createdAt", order: "desc" } }
     );
 
+    // Get backend address for feegrant queries
+    const backendAddr = await getBackendAddress();
+
     // Get user info for each address
     const leaderboardEntries = await Promise.all(
       addresses.map(async (address) => {
@@ -46,14 +49,33 @@ export const statsRouter = createTRPCRouter({
           id: address.userId,
         });
 
-        // Try to get on-chain balance
+        // Try to get on-chain balance and feegrant data
         let balance = "0";
+        let feeAllowanceRemaining = address.feeAllowanceRemaining ?? "0";
+        let hasFeeGrant = address.hasFeeGrant;
+
         try {
-          const { client } = await getCelestiaClient();
-          const balanceResult = await client.getBalance(address.bech32, "utia");
+          const [balanceResult, feegrantResult] = await Promise.all([
+            (async () => {
+              const { client } = await getCelestiaClient();
+              return client.getBalance(address.bech32, "utia");
+            })(),
+            getFeegrantAllowance(backendAddr, address.bech32),
+          ]);
+
           balance = balanceResult.amount;
+
+          // Use real on-chain feegrant data if available
+          if (feegrantResult) {
+            feeAllowanceRemaining = feegrantResult.remaining;
+            hasFeeGrant = true;
+          } else if (address.hasFeeGrant) {
+            // Grant may have been exhausted or revoked
+            feeAllowanceRemaining = "0";
+            hasFeeGrant = false;
+          }
         } catch {
-          // Ignore balance fetch errors
+          // Ignore fetch errors, use database values
         }
 
         return {
@@ -62,8 +84,8 @@ export const statsRouter = createTRPCRouter({
           avatar: user?.image ?? `https://api.dicebear.com/7.x/identicon/svg?seed=${address.userId}`,
           walletAddress: address.bech32,
           isDusted: address.isDusted,
-          hasFeeGrant: address.hasFeeGrant,
-          feeAllowanceRemaining: address.feeAllowanceRemaining,
+          hasFeeGrant,
+          feeAllowanceRemaining,
           balance: formatTia(parseInt(balance)),
           balanceUtia: parseInt(balance),
           joinedAt: address.createdAt,
@@ -91,15 +113,38 @@ export const statsRouter = createTRPCRouter({
       return null;
     }
 
-    // Get on-chain balance if address exists
+    // Get on-chain balance and feegrant data if address exists
     let balance = "0";
+    let feeAllowanceRemaining = "0";
+    let hasFeeGrant = address?.hasFeeGrant ?? false;
+
     if (address) {
       try {
-        const { client } = await getCelestiaClient();
-        const balanceResult = await client.getBalance(address.bech32, "utia");
+        // Fetch balance and feegrant data in parallel
+        const backendAddr = await getBackendAddress();
+        const [balanceResult, feegrantResult] = await Promise.all([
+          (async () => {
+            const { client } = await getCelestiaClient();
+            return client.getBalance(address.bech32, "utia");
+          })(),
+          getFeegrantAllowance(backendAddr, address.bech32),
+        ]);
+
         balance = balanceResult.amount;
-      } catch {
-        // Ignore balance fetch errors
+
+        // Use real on-chain feegrant data if available
+        if (feegrantResult) {
+          feeAllowanceRemaining = feegrantResult.remaining;
+          hasFeeGrant = true;
+        } else if (address.hasFeeGrant) {
+          // Database says we have feegrant but chain says no - grant may have been revoked or exhausted
+          feeAllowanceRemaining = "0";
+          hasFeeGrant = false;
+        }
+      } catch (error) {
+        console.error("[Stats] Error fetching wallet data:", error);
+        // Fall back to database values on error
+        feeAllowanceRemaining = address.feeAllowanceRemaining ?? "0";
       }
     }
 
@@ -117,8 +162,8 @@ export const statsRouter = createTRPCRouter({
         ? {
             address: address.bech32,
             isDusted: address.isDusted,
-            hasFeeGrant: address.hasFeeGrant,
-            feeAllowanceRemaining: address.feeAllowanceRemaining,
+            hasFeeGrant,
+            feeAllowanceRemaining,
             balance: formatTia(parseInt(balance)),
             balanceUtia: parseInt(balance),
           }

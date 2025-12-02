@@ -558,9 +558,14 @@ export default function ProfilePage() {
             )}
 
             {/* Namespace list */}
-            {namespaces && namespaces.length > 0 ? (
+            {namespaces && namespaces.length > 0 ? (() => {
+              // Deduplicate namespaces by namespaceId (keep the first/latest one)
+              const uniqueNamespaces = Array.from(
+                new Map(namespaces.map(ns => [ns.namespaceId, ns])).values()
+              );
+              return (
               <div className="space-y-3">
-                {namespaces.map((ns) => {
+                {uniqueNamespaces.map((ns) => {
                   // Use linkedRepo from the enriched data
                   const linkedRepo = ns.linkedRepo;
                   return (
@@ -718,7 +723,8 @@ export default function ProfilePage() {
                   );
                 })}
               </div>
-            ) : (
+              );
+            })() : (
               <div className="text-center py-8 text-muted-foreground">
                 <Box className="w-8 h-8 mx-auto mb-2 opacity-50" />
                 <p>No namespaces yet</p>
