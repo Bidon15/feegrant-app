@@ -25,6 +25,7 @@ function toAdapterUser(user: User): AdapterUser {
 export function OnChainDBAdapter(): Adapter {
   return {
     async createUser(data) {
+      console.log(`[Auth Adapter] createUser called with:`, { name: data.name, email: data.email });
       const id = generateId();
       const now = nowISO();
 
@@ -44,7 +45,13 @@ export function OnChainDBAdapter(): Adapter {
         updatedAt: now,
       };
 
-      await db.createDocument(COLLECTIONS.users, user);
+      try {
+        await db.createDocument(COLLECTIONS.users, user);
+        console.log(`[Auth Adapter] User created with id ${id}`);
+      } catch (error) {
+        console.error(`[Auth Adapter] Error creating user:`, error);
+        throw error;
+      }
       return toAdapterUser(user);
     },
 
@@ -107,6 +114,7 @@ export function OnChainDBAdapter(): Adapter {
     },
 
     async linkAccount(data) {
+      console.log(`[Auth Adapter] linkAccount called for userId=${data.userId}, provider=${data.provider}`);
       const id = generateId();
       const account: Account = {
         id,
@@ -124,7 +132,13 @@ export function OnChainDBAdapter(): Adapter {
         refresh_token_expires_in: null,
       };
 
-      await db.createDocument(COLLECTIONS.accounts, account);
+      try {
+        await db.createDocument(COLLECTIONS.accounts, account);
+        console.log(`[Auth Adapter] Account linked with id ${id}`);
+      } catch (error) {
+        console.error(`[Auth Adapter] Error linking account:`, error);
+        throw error;
+      }
 
       return account as unknown as AdapterAccount;
     },
@@ -159,9 +173,15 @@ export function OnChainDBAdapter(): Adapter {
 
     async getSessionAndUser(sessionToken) {
       console.log(`[Auth Adapter] Getting session for token: ${sessionToken.substring(0, 10)}...`);
-      const session = await db.findUnique<Session>(COLLECTIONS.sessions, { sessionToken });
+      let session: Session | null = null;
+      try {
+        session = await db.findUnique<Session>(COLLECTIONS.sessions, { sessionToken });
+      } catch (error) {
+        console.error(`[Auth Adapter] Error finding session:`, error);
+        return null;
+      }
       if (!session) {
-        console.log(`[Auth Adapter] Session not found`);
+        console.log(`[Auth Adapter] Session not found (null result)`);
         return null;
       }
       console.log(`[Auth Adapter] Session found for user ${session.userId}`);
