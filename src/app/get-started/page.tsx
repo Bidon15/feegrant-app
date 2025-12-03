@@ -271,6 +271,80 @@ export default function GetStartedPage() {
             </p>
           </div>
 
+          {/* Quick Start - Clone Repo */}
+          <section className="mb-8">
+            <Card className="glass border-primary/50 bg-primary/5">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <GitBranch className="text-primary h-5 w-5" />
+                  <CardTitle className="font-mono">Quick Start</CardTitle>
+                  <Badge variant="secondary" className="ml-2">
+                    Recommended
+                  </Badge>
+                </div>
+                <CardDescription>
+                  Clone the example repo and start submitting blobs in minutes
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="bg-muted/50 border-border flex items-center justify-between rounded-lg border p-4">
+                  <code className="text-sm">
+                    git clone https://github.com/Bidon15/blobcell-go-test.git
+                  </code>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="ml-2"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(
+                        "git clone https://github.com/Bidon15/blobcell-go-test.git"
+                      );
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" asChild className="font-mono">
+                    <a
+                      href="https://github.com/Bidon15/blobcell-go-test"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      View on GitHub
+                    </a>
+                  </Button>
+                </div>
+                <div className="text-muted-foreground text-sm">
+                  <p className="mb-2">Then configure your environment:</p>
+                  <ol className="list-inside list-decimal space-y-1">
+                    <li>
+                      Copy <code className="text-primary">.env.example</code> to{" "}
+                      <code className="text-primary">.env</code>
+                    </li>
+                    <li>Add your private key from Keplr</li>
+                    <li>
+                      Add your feegranter address from your{" "}
+                      <a href="/profile" className="text-primary underline">
+                        BlobCell profile
+                      </a>
+                    </li>
+                    <li>
+                      Run <code className="text-primary">go run main.go</code>
+                    </li>
+                  </ol>
+                </div>
+              </CardContent>
+            </Card>
+          </section>
+
+          <div className="text-muted-foreground mb-8 flex items-center gap-4">
+            <div className="bg-border h-px flex-1" />
+            <span className="text-sm">or set up manually</span>
+            <div className="bg-border h-px flex-1" />
+          </div>
+
           {/* Step 1: Environment Setup */}
           <section className="mb-8">
             <Card className="glass">
