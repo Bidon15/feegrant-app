@@ -25,50 +25,6 @@ import {
 } from "lucide-react";
 
 const CELESTIA_MOCHA_CHAIN_ID = "mocha-4";
-const CELESTIA_RPC = "https://rpc-mocha.pops.one";
-
-// Chain config for Keplr
-const celestiaMochaConfig = {
-  chainId: CELESTIA_MOCHA_CHAIN_ID,
-  chainName: "Celestia Mocha Testnet",
-  rpc: CELESTIA_RPC,
-  rest: "https://api-mocha.pops.one",
-  bip44: {
-    coinType: 118,
-  },
-  bech32Config: {
-    bech32PrefixAccAddr: "celestia",
-    bech32PrefixAccPub: "celestiapub",
-    bech32PrefixValAddr: "celestiavaloper",
-    bech32PrefixValPub: "celestiavaloperpub",
-    bech32PrefixConsAddr: "celestiavalcons",
-    bech32PrefixConsPub: "celestiavalconspub",
-  },
-  currencies: [
-    {
-      coinDenom: "TIA",
-      coinMinimalDenom: "utia",
-      coinDecimals: 6,
-    },
-  ],
-  feeCurrencies: [
-    {
-      coinDenom: "TIA",
-      coinMinimalDenom: "utia",
-      coinDecimals: 6,
-      gasPriceStep: {
-        low: 0.01,
-        average: 0.02,
-        high: 0.1,
-      },
-    },
-  ],
-  stakeCurrency: {
-    coinDenom: "TIA",
-    coinMinimalDenom: "utia",
-    coinDecimals: 6,
-  },
-};
 
 export default function AdminPage() {
   // Keplr connection state
@@ -148,10 +104,7 @@ export default function AdminPage() {
         throw new Error("Keplr wallet not found. Please install Keplr extension.");
       }
 
-      // Suggest the Celestia Mocha chain to Keplr first
-      await window.keplr.experimentalSuggestChain(celestiaMochaConfig);
-
-      // Then enable the chain
+      // Enable the chain (Keplr already has mocha-4 built-in)
       await window.keplr.enable(CELESTIA_MOCHA_CHAIN_ID);
       const key = await window.keplr.getKey(CELESTIA_MOCHA_CHAIN_ID);
       setKeplrAddress(key.bech32Address);
@@ -207,12 +160,11 @@ export default function AdminPage() {
     try {
       console.log("[Authz] Starting authz grant flow...");
 
-      // Ensure the chain is suggested and enabled
-      await window.keplr.experimentalSuggestChain(celestiaMochaConfig);
+      // Enable the chain (Keplr already has mocha-4 built-in)
       await window.keplr.enable(CELESTIA_MOCHA_CHAIN_ID);
       console.log("[Authz] Chain enabled");
 
-      // Get offline signer (must await getOfflineSignerAuto for proper async handling)
+      // Get offline signer
       const offlineSigner = await window.keplr.getOfflineSignerAuto(CELESTIA_MOCHA_CHAIN_ID);
       console.log("[Authz] Got offline signer");
 
@@ -227,9 +179,11 @@ export default function AdminPage() {
       registry.register("/cosmos.authz.v1beta1.MsgGrant", MsgGrant as Parameters<typeof registry.register>[1]);
       registry.register("/cosmos.authz.v1beta1.GenericAuthorization", GenericAuthorization as Parameters<typeof registry.register>[1]);
 
-      console.log("[Authz] Connecting to RPC:", CELESTIA_RPC);
+      // Use Keplr's RPC for mocha-4
+      const rpcEndpoint = "https://rpc-mocha.pops.one";
+      console.log("[Authz] Connecting to RPC:", rpcEndpoint);
       const client = await SigningStargateClient.connectWithSigner(
-        CELESTIA_RPC,
+        rpcEndpoint,
         offlineSigner,
         { registry }
       );
