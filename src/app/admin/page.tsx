@@ -474,7 +474,10 @@ export default function AdminPage() {
                   )}
                 </div>
                 <Button
-                  onClick={handleGrantAuthz}
+                  onClick={() => {
+                    console.log("[Authz] Button clicked!");
+                    void handleGrantAuthz();
+                  }}
                   disabled={isGrantingAuthz}
                   className="font-mono glow-green"
                 >
