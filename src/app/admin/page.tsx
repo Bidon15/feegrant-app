@@ -21,7 +21,6 @@ import {
   Check,
   AlertCircle,
   Coins,
-  Users,
   TrendingUp,
 } from "lucide-react";
 
@@ -128,9 +127,9 @@ export default function AdminPage() {
       }
     };
 
-    window.addEventListener("keplr_keystorechange", handleKeyStoreChange);
+    window.addEventListener("keplr_keystorechange", () => void handleKeyStoreChange());
     return () => {
-      window.removeEventListener("keplr_keystorechange", handleKeyStoreChange);
+      window.removeEventListener("keplr_keystorechange", () => void handleKeyStoreChange());
     };
   }, []);
 
@@ -650,7 +649,7 @@ export default function AdminPage() {
                       <div className="flex items-center gap-4 text-xs text-muted-foreground">
                         <span>{Number(fg.amountUtia) / 1_000_000} TIA</span>
                         <span>{new Date(fg.createdAt).toLocaleDateString()}</span>
-                        {fg.note && <span>"{fg.note}"</span>}
+                        {fg.note && <span>&quot;{fg.note}&quot;</span>}
                       </div>
                       {fg.txHash && (
                         <a

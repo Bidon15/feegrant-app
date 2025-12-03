@@ -6,14 +6,8 @@
  */
 
 import { getCelestiaClient, getBackendAddress } from "./client";
-import { Registry, type GeneratedType } from "@cosmjs/proto-signing";
-import { defaultRegistryTypes } from "@cosmjs/stargate";
-import {
-  MsgGrantAllowance,
-  MsgRevokeAllowance,
-} from "cosmjs-types/cosmos/feegrant/v1beta1/tx";
-import { MsgExec, MsgGrant, MsgRevoke } from "cosmjs-types/cosmos/authz/v1beta1/tx";
-import { GenericAuthorization } from "cosmjs-types/cosmos/authz/v1beta1/authz";
+import { MsgGrantAllowance } from "cosmjs-types/cosmos/feegrant/v1beta1/tx";
+import type { MsgExec } from "cosmjs-types/cosmos/authz/v1beta1/tx";
 import { BasicAllowance } from "cosmjs-types/cosmos/feegrant/v1beta1/feegrant";
 import { Timestamp } from "cosmjs-types/google/protobuf/timestamp";
 import { Any } from "cosmjs-types/google/protobuf/any";
@@ -129,17 +123,6 @@ export async function executeAdminFeegrant(params: {
       }),
     ],
   };
-
-  // Create extended registry with authz types
-  const registry = new Registry([
-    ...defaultRegistryTypes,
-    ["/cosmos.feegrant.v1beta1.MsgGrantAllowance", MsgGrantAllowance as GeneratedType],
-    ["/cosmos.feegrant.v1beta1.MsgRevokeAllowance", MsgRevokeAllowance as GeneratedType],
-    ["/cosmos.authz.v1beta1.MsgExec", MsgExec as GeneratedType],
-    ["/cosmos.authz.v1beta1.MsgGrant", MsgGrant as GeneratedType],
-    ["/cosmos.authz.v1beta1.MsgRevoke", MsgRevoke as GeneratedType],
-    ["/cosmos.authz.v1beta1.GenericAuthorization", GenericAuthorization as GeneratedType],
-  ]);
 
   // Sign and broadcast using MsgExec
   const fee = {

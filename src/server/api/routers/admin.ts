@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createTRPCRouter, publicProcedure, protectedProcedure } from "~/server/api/trpc";
+import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import {
   db,
   COLLECTIONS,
@@ -25,7 +25,7 @@ export const adminRouter = createTRPCRouter({
         celestiaAddress: input.celestiaAddress,
       });
 
-      if (!admin || !admin.isActive) {
+      if (!admin?.isActive) {
         return { isAdmin: false, admin: null };
       }
 

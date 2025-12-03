@@ -10,6 +10,8 @@ BlobCell allows developers to:
 - **Set up feegrant allowances** for gasless transactions
 - **Start submitting blobs** immediately with zero friction
 
+**For Organizations**: The Admin Panel allows RPC providers and ecosystem partners to issue custom feegrants to developers from their own wallets using Cosmos authz delegation.
+
 Built for the **Celestia Mocha testnet** with GitHub authentication and Keplr wallet integration.
 
 ## Architecture
@@ -107,6 +109,29 @@ Visit `http://localhost:3000` to see the application.
 - **accounts**: OAuth account links
 - **sessions**: User sessions
 - **addresses**: Bound Celestia addresses with funding status
+- **admins**: Admin profiles with authz grant tracking
+- **admin_feegrants**: Feegrant records issued by admins
+
+## Admin Panel
+
+The Admin Panel (`/admin`) enables organizations to issue feegrants from their own wallets:
+
+### How It Works
+1. **Register as Admin**: Connect Keplr and register with a display name
+2. **Grant Authz**: Sign a message granting the backend permission to execute `MsgGrantAllowance` on your behalf
+3. **Issue Feegrants**: Specify recipient address, amount (TIA), and optional note
+4. **Backend Executes**: Uses `MsgExec` to create feegrants from your wallet without needing your private key
+
+### Use Cases
+- **RPC Providers**: Incentivize developers building on your infrastructure
+- **Ecosystem Partners**: Onboard new developers with fee coverage
+- **Hackathon Sponsors**: Provide testnet resources to participants
+
+### Technical Flow
+```
+Admin Wallet --[MsgGrant/GenericAuthorization]--> Backend Address
+Backend --[MsgExec(MsgGrantAllowance)]--> Recipient gets feegrant from Admin
+```
 
 ## Celestia Integration
 
@@ -118,6 +143,8 @@ Visit `http://localhost:3000` to see the application.
 ### Message Types
 - `MsgSend`: Wallet funding (dusting)
 - `MsgGrantAllowance`: Feegrant setup
+- `MsgGrant`: Authz permission delegation (admin panel)
+- `MsgExec`: Execute messages on behalf of granter (admin panel)
 
 ## Development
 
@@ -125,6 +152,7 @@ Visit `http://localhost:3000` to see the application.
 ```
 src/
 ├── app/                 # Next.js app router
+│   ├── admin/          # Admin panel for custom feegrants
 │   ├── auth/           # Onboarding flow
 │   ├── get-started/    # Documentation & community
 │   ├── htop/           # Leaderboard view
@@ -132,6 +160,7 @@ src/
 ├── server/
 │   ├── api/routers/    # tRPC endpoints
 │   ├── auth/           # NextAuth + OnChainDB adapter
+│   ├── celestia/       # Celestia client & authz module
 │   ├── celenium/       # Celenium API client
 │   ├── jobs/           # Dust & feegrant jobs
 │   └── db.ts           # OnChainDB client
@@ -144,6 +173,8 @@ src/
 - `src/server/auth/onchaindb-adapter.ts`: NextAuth adapter for OnChainDB
 - `src/server/api/routers/user.ts`: Wallet binding endpoints
 - `src/server/api/routers/wallet.ts`: Dust & feegrant endpoints
+- `src/server/api/routers/admin.ts`: Admin panel endpoints
+- `src/server/celestia/authz.ts`: Authz grant execution (MsgExec)
 - `src/server/jobs/index.ts`: Background job execution
 
 ### Commands
