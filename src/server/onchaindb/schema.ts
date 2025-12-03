@@ -161,6 +161,27 @@ export const SCHEMAS: Record<string, CollectionSchema> = {
     ],
   },
 
+  namespace_repos: {
+    fields: {
+      id: { type: "string", required: true, unique: true },
+      namespaceId: { type: "string", required: true, index: true },
+      userId: { type: "string", required: true, index: true },
+      repoId: { type: "number", required: true },
+      fullName: { type: "string", required: true },
+      name: { type: "string", required: true },
+      owner: { type: "string", required: true },
+      description: { type: "string" },
+      isPrivate: { type: "boolean", required: true },
+      htmlUrl: { type: "string", required: true },
+      language: { type: "string" },
+      stargazersCount: { type: "number" },
+      forksCount: { type: "number" },
+      createdAt: { type: "string", required: true },
+    },
+    required: ["id", "namespaceId", "userId", "repoId", "fullName", "name", "owner", "isPrivate", "htmlUrl", "createdAt"],
+    // No relationships defined here - just indexes for lookups
+  },
+
 };
 
 // Index definitions for optimized queries
@@ -315,6 +336,33 @@ export const INDEXES: IndexDefinition[] = [
     index_type: "btree",
   },
 
+  // Namespace repos collection indexes (junction table for namespace <-> repo many-to-many)
+  {
+    name: "idx_namespace_repos_id",
+    collection: COLLECTIONS.namespaceRepos,
+    field_name: "id",
+    index_type: "hash",
+    options: { unique: true },
+  },
+  {
+    name: "idx_namespace_repos_namespaceId",
+    collection: COLLECTIONS.namespaceRepos,
+    field_name: "namespaceId",
+    index_type: "hash",
+  },
+  {
+    name: "idx_namespace_repos_userId",
+    collection: COLLECTIONS.namespaceRepos,
+    field_name: "userId",
+    index_type: "hash",
+  },
+  {
+    name: "idx_namespace_repos_repoId",
+    collection: COLLECTIONS.namespaceRepos,
+    field_name: "repoId",
+    index_type: "hash",
+  },
+
 ];
 
 // Collection configurations for creation
@@ -347,6 +395,12 @@ export const COLLECTION_CONFIGS = [
   {
     name: COLLECTIONS.namespaces,
     namespace: `${env.ONCHAINDB_APP_ID}_namespaces`,
+    primary_column: "id",
+    sort_column: "createdAt",
+  },
+  {
+    name: COLLECTIONS.namespaceRepos,
+    namespace: `${env.ONCHAINDB_APP_ID}_namespace_repos`,
     primary_column: "id",
     sort_column: "createdAt",
   },

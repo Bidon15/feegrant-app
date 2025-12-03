@@ -24,14 +24,9 @@ export const statsRouter = createTRPCRouter({
       (addr) => addr.isDusted && addr.hasFeeGrant
     );
 
-    // Calculate total TIA feegranted (sum of feeAllowanceRemaining from all feegranted addresses)
-    // Each feegrant is typically 1 TIA (1,000,000 utia)
-    const totalFeegrantedUtia = feegrantedAddresses.reduce((sum, addr) => {
-      const remaining = parseInt(addr.feeAllowanceRemaining ?? "0");
-      // If they have remaining, they likely received the full grant amount
-      // We count the original grant amount (1 TIA = 1,000,000 utia per user)
-      return sum + (remaining > 0 ? 1000000 : 0);
-    }, 0);
+    // Calculate total TIA feegranted
+    // Each feegrant is 1 TIA (1,000,000 utia) - if hasFeeGrant is true, they received a grant
+    const totalFeegrantedUtia = feegrantedAddresses.length * 1000000;
 
     // Get all namespaces and deduplicate by namespaceId
     const allNamespaces = await ctx.db.findMany<Namespace>(COLLECTIONS.namespaces, {}, { limit: 1000 });
