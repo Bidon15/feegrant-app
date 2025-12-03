@@ -11,6 +11,7 @@ import {
 } from "~/server/db";
 import { getBackendAddress } from "~/server/celestia/client";
 import { executeAdminFeegrant, queryAuthzGrant } from "~/server/celestia/authz";
+import { env } from "~/env";
 
 // Default feegrant amount: 10 TIA = 10,000,000 utia
 const DEFAULT_FEEGRANT_AMOUNT_UTIA = "10000000";
@@ -44,10 +45,13 @@ export const adminRouter = createTRPCRouter({
       };
     }),
 
-  // Get backend wallet address (for authz grant setup)
+  // Get backend wallet address and RPC endpoint (for authz grant setup)
   getBackendAddress: publicProcedure.query(async () => {
     const address = await getBackendAddress();
-    return { backendAddress: address };
+    return {
+      backendAddress: address,
+      rpcEndpoint: env.QUICKNODE_RPC,
+    };
   }),
 
   // Register a new admin (self-registration with signature verification)

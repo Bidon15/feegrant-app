@@ -179,9 +179,8 @@ export default function AdminPage() {
       registry.register("/cosmos.authz.v1beta1.MsgGrant", MsgGrant as Parameters<typeof registry.register>[1]);
       registry.register("/cosmos.authz.v1beta1.GenericAuthorization", GenericAuthorization as Parameters<typeof registry.register>[1]);
 
-      // Use PublicNode's CORS-enabled RPC for mocha-4
-      // See: https://celestia-mocha-rpc.publicnode.com/
-      const rpcEndpoint = "https://celestia-mocha-rpc.publicnode.com";
+      // Use QuickNode RPC from backend config
+      const rpcEndpoint = backendData.rpcEndpoint;
       console.log("[Authz] Connecting to RPC:", rpcEndpoint);
       const client = await SigningStargateClient.connectWithSigner(
         rpcEndpoint,
