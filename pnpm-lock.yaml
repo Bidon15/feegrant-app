@@ -33,8 +33,8 @@ importers:
         specifier: ^0.12.102
         version: 0.12.156(starknet@6.24.1)
       '@onchaindb/sdk':
-        specifier: ^0.0.6
-        version: 0.0.6
+        specifier: ^0.0.7
+        version: 0.0.7
       '@radix-ui/react-label':
         specifier: ^2.1.8
         version: 2.1.8(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -1105,8 +1105,8 @@ packages:
       rolldown:
         optional: true
 
-  '@onchaindb/sdk@0.0.6':
-    resolution: {integrity: sha512-ZndfVUHb3Tzipz7YIfEGOAFDC8pQEvWgr1LkM+M2fIfw64ZdWqrD4Yr3QmoAod4xfgC2IEkkum8cw464ibmVHg==}
+  '@onchaindb/sdk@0.0.7':
+    resolution: {integrity: sha512-c+xNvQKEgQ8PxlkRTACYfvyN+jT2d+Bhij3RIn1+et2d15XtyGKPlWnH+ujsL5Zavy8W51xZHlyz7iQI8434tQ==}
 
   '@oxc-minify/binding-android-arm64@0.96.0':
     resolution: {integrity: sha512-lzeIEMu/v6Y+La5JSesq4hvyKtKBq84cgQpKYTYM/yGuNk2tfd5Ha31hnC+mTh48lp/5vZH+WBfjVUjjINCfug==}
@@ -6812,7 +6812,7 @@ snapshots:
       - vue-tsc
       - yaml
 
-  '@onchaindb/sdk@0.0.6':
+  '@onchaindb/sdk@0.0.7':
     dependencies:
       axios: 1.13.2
       eventemitter3: 5.0.1

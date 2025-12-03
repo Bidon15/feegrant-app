@@ -1,6 +1,6 @@
 import { createClient, type OnChainDBClient as SDKClient } from "@onchaindb/sdk";
 import { env } from "~/env";
-import { createPaymentCallback, executeDirectPayment, type PaymentQuote } from "~/server/onchaindb/payment";
+import { createPaymentCallback } from "~/server/onchaindb/payment";
 
 // Collection names matching our data model
 // Note: sessions are handled via JWT, not stored in database
@@ -11,6 +11,9 @@ export const COLLECTIONS = {
   verificationTokens: "verification_tokens",
   namespaces: "namespaces",
   namespaceRepos: "namespace_repos", // Junction table: namespace <-> repo (many-to-many)
+  // Admin panel collections
+  admins: "admins",
+  adminFeegrants: "admin_feegrants",
 } as const;
 
 // Type definitions for our data models
@@ -95,6 +98,51 @@ export interface NamespaceRepo {
   stargazersCount: number;
   forksCount: number;
   createdAt: string;
+}
+
+// Admin - Users who can issue feegrants via authz
+// Use case: RPC providers, ecosystem funds, hackathon sponsors
+export interface Admin {
+  id: string;
+  celestiaAddress: string; // Admin's bech32 address (unique identifier)
+  userId: string | null; // Optional link to GitHub user
+  name: string; // Display name (e.g., "QuickNode DevRel")
+  // Authz grant tracking - admin signs once to allow backend to execute MsgGrantAllowance
+  hasAuthzGrant: boolean;
+  authzGrantTxHash: string | null; // Tx hash of MsgGrant
+  authzExpiresAt: string | null; // ISO date when authz expires
+  // Default feegrant settings
+  defaultAmountUtia: string; // Default amount for new feegrants (e.g., "10000000" = 10 TIA)
+  defaultExpirationDays: number; // Default expiration in days (e.g., 30)
+  // Activity tracking
+  totalFeegrantsIssued: number;
+  totalUtiaGranted: string; // BigInt as string for precision
+  isActive: boolean; // Can be deactivated without deletion
+  createdAt: string;
+  updatedAt: string;
+}
+
+// AdminFeegrant - Individual feegrant issued by an admin
+// Tracks the full lifecycle: pending → executing → success/failed
+export interface AdminFeegrant {
+  id: string;
+  adminId: string; // FK → admins
+  adminAddress: string; // Denormalized for queries without joins
+  // Recipient info
+  recipientAddress: string; // Celestia bech32 address receiving feegrant
+  recipientUserId: string | null; // Optional link to user (if they're registered)
+  recipientName: string | null; // Optional display name
+  // Feegrant details
+  amountUtia: string; // Amount in utia (e.g., "10000000" = 10 TIA)
+  expiresAt: string | null; // ISO date when feegrant expires
+  // Execution tracking
+  txHash: string | null; // Tx hash of MsgExec(MsgGrantAllowance)
+  status: "pending" | "executing" | "success" | "failed";
+  errorMessage: string | null; // Error details if failed
+  // Metadata
+  note: string | null; // Admin's note (e.g., "Hackathon winner", "Active contributor")
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Initialize OnChainDB client
@@ -215,14 +263,14 @@ export const db: DBClient = {
       console.log(`[OnChainDB] createDocument in ${collection}:`, { id: dataWithMeta.id });
 
       // Use the store method for write operations
-      // This handles x402 payment flow automatically
+      // This handles x402 payment flow automatically (SDK v0.0.7+)
       const result = await onchaindbClient.store(
         {
           collection,
           data: [dataWithMeta],
         },
         // Payment callback - will be invoked if server returns 402
-        createPaymentCallback() as (quote: PaymentQuote) => Promise<{ txHash: string; network?: string }>,
+        createPaymentCallback(),
         true // waitForConfirmation
       );
 
@@ -260,13 +308,13 @@ export const db: DBClient = {
         updatedAt: nowISO(),
       };
 
-      // Store the updated document
+      // Store the updated document (SDK v0.0.7+)
       await onchaindbClient.store(
         {
           collection,
           data: [updated],
         },
-        createPaymentCallback() as (quote: PaymentQuote) => Promise<{ txHash: string; network?: string }>,
+        createPaymentCallback(),
         true
       );
 
@@ -295,25 +343,11 @@ export const db: DBClient = {
         return false;
       }
 
-      // Use SDK's deleteDocument method which properly marks as deleted
-      // First get a pricing quote to know how much to pay
-      const quote = await onchaindbClient.getPricingQuote({
-        app_id: env.ONCHAINDB_APP_ID,
-        operation_type: 'write',
-        size_kb: 1, // Minimal size for delete operation
-        collection,
-      });
-
-      console.log(`[OnChainDB] deleteDocument: Got quote for ${quote.total_cost_utia} utia`);
-
-      // Execute payment and get proof
-      const paymentProof = await executeDirectPayment(quote.total_cost_utia);
-
-      // Call SDK's deleteDocument with payment proof
+      // Call SDK's deleteDocument with payment callback (SDK v0.0.7+)
       const result = await onchaindbClient.deleteDocument(
         collection,
         query,
-        paymentProof
+        createPaymentCallback()
       );
 
       console.log(`[OnChainDB] deleteDocument: Result = ${result}`);

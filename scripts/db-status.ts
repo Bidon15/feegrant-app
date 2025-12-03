@@ -35,6 +35,9 @@ const COLLECTIONS = [
   "verification_tokens",
   "namespaces",
   "namespace_repos",
+  // Admin panel collections
+  "admins",
+  "admin_feegrants",
 ];
 
 async function status() {

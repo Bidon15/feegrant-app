@@ -1,25 +1,12 @@
 import { getCelestiaClient } from "~/server/celestia/client";
 import { env } from "~/env";
+import type { X402Quote, X402PaymentResult } from "@onchaindb/sdk/dist/x402/types";
 
-// Payment quote structure from OnChainDB x402 response
-export interface PaymentQuote {
-  quote_id: string;
-  total_cost_tia: string;
-  total_cost_utia: number;
-  broker_address: string;
-  matched_records?: number;
-  cost_breakdown?: {
-    celestia_fee: number;
-    broker_fee: number;
-    indexing_cost?: number;
-  };
-}
+// Re-export SDK types for convenience
+export type { X402Quote, X402PaymentResult };
 
-// Payment callback response expected by OnChainDB SDK
-export interface PaymentResponse {
-  txHash: string;
-  network?: string;
-}
+// Legacy type aliases for backwards compatibility
+export type PaymentQuote = X402Quote;
 
 // Payment proof structure required by OnChainDB SDK for delete/update operations
 export interface PaymentProof {
@@ -30,24 +17,24 @@ export interface PaymentProof {
 }
 
 /**
- * Execute payment for OnChainDB x402 flow
+ * Execute payment for OnChainDB x402 flow (SDK v0.0.7+)
  *
  * This function is called by the OnChainDB SDK when a store operation
  * returns HTTP 402 Payment Required. It sends tokens from the backend
  * wallet to the broker address specified in the quote.
  */
 export async function executeOnChainDBPayment(
-  quote: PaymentQuote
-): Promise<PaymentResponse> {
-  console.log(`[OnChainDB Payment] Processing payment for quote: ${quote.quote_id}`);
-  console.log(`[OnChainDB Payment] Amount: ${quote.total_cost_tia} TIA (${quote.total_cost_utia} utia)`);
-  console.log(`[OnChainDB Payment] Broker: ${quote.broker_address}`);
+  quote: X402Quote
+): Promise<X402PaymentResult> {
+  console.log(`[OnChainDB Payment] Processing payment for quote: ${quote.quoteId}`);
+  console.log(`[OnChainDB Payment] Amount: ${quote.totalCostTia} TIA (${quote.amountRaw} utia)`);
+  console.log(`[OnChainDB Payment] Broker: ${quote.brokerAddress}`);
 
   const { client, address: backendAddr } = await getCelestiaClient();
 
   // Validate we have tokens to send
   const balance = await client.getBalance(backendAddr, "utia");
-  const requiredAmount = quote.total_cost_utia;
+  const requiredAmount = parseInt(quote.amountRaw);
 
   if (parseInt(balance.amount) < requiredAmount) {
     throw new Error(
@@ -62,14 +49,14 @@ export async function executeOnChainDBPayment(
     gas: "100000",
   };
 
-  console.log(`[OnChainDB Payment] Sending ${requiredAmount} utia from ${backendAddr} to ${quote.broker_address}`);
+  console.log(`[OnChainDB Payment] Sending ${requiredAmount} utia from ${backendAddr} to ${quote.brokerAddress}`);
 
   const result = await client.sendTokens(
     backendAddr,
-    quote.broker_address,
+    quote.brokerAddress,
     [{ denom: "utia", amount: String(requiredAmount) }],
     fee,
-    `OnChainDB payment for quote ${quote.quote_id}`
+    `OnChainDB payment for quote ${quote.quoteId}`
   );
 
   if (result.code !== 0) {
@@ -81,18 +68,21 @@ export async function executeOnChainDBPayment(
 
   return {
     txHash: result.transactionHash,
-    network: env.CELESTIA_CHAIN_ID,
+    network: quote.network,
+    sender: backendAddr,
+    chainType: quote.chainType,
+    paymentMethod: quote.paymentMethod,
   };
 }
 
 /**
- * Create a payment callback for OnChainDB store operations
+ * Create a payment callback for OnChainDB store operations (SDK v0.0.7+)
  *
  * Returns a function that can be passed to the OnChainDB SDK's store() method.
  * The SDK will automatically call this when HTTP 402 is returned.
  */
-export function createPaymentCallback() {
-  return async (quote: PaymentQuote): Promise<PaymentResponse> => {
+export function createPaymentCallback(): (quote: X402Quote) => Promise<X402PaymentResult> {
+  return async (quote: X402Quote): Promise<X402PaymentResult> => {
     return executeOnChainDBPayment(quote);
   };
 }
