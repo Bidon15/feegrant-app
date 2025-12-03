@@ -13,14 +13,11 @@ import {
   Loader2,
   RefreshCw,
   Coins,
-  TrendingUp,
   Box,
   Database,
   Github,
   ExternalLink,
-  FolderGit2,
 } from "lucide-react";
-import { truncateAddress } from "~/lib/formatting";
 
 export default function HtopPage() {
   const [sessionTime, setSessionTime] = useState(0);
@@ -37,8 +34,6 @@ export default function HtopPage() {
   const { data: networkStats, refetch: refetchStats } = api.stats.network.useQuery(undefined, {
     refetchInterval: 30000,
   });
-
-  const { data: backendWallet } = api.stats.backendWallet.useQuery();
 
   const { data: blobStats, refetch: refetchBlobStats } = api.stats.globalBlobStats.useQuery(undefined, {
     refetchInterval: 30000,
@@ -94,9 +89,9 @@ export default function HtopPage() {
                     <span className="text-foreground">{networkStats.users.total} users</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Activity className="w-3 h-3 text-accent" />
+                    <Coins className="w-3 h-3 text-accent" />
                     <span className="text-foreground">
-                      {networkStats.users.feegranted} fee granted
+                      {networkStats.users.totalFeegrantedFormatted} feegranted
                     </span>
                   </div>
                 </>
@@ -167,13 +162,13 @@ export default function HtopPage() {
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-[hsl(35_90%_55%)]/10">
-                  <TrendingUp className="w-5 h-5 text-[hsl(35_90%_55%)]" />
+                  <Coins className="w-5 h-5 text-[hsl(35_90%_55%)]" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold font-mono">
-                    {networkStats?.users.feegranted ?? 0}
+                    {networkStats?.users.totalFeegrantedFormatted ?? "0 TIA"}
                   </p>
-                  <p className="text-xs text-muted-foreground">Fee Granted</p>
+                  <p className="text-xs text-muted-foreground">Total Feegranted</p>
                 </div>
               </div>
             </CardContent>
@@ -182,7 +177,7 @@ export default function HtopPage() {
 
         {/* Blob Stats */}
         {blobStats && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-3 gap-4 mb-8">
             <Card className="glass border-primary/20">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
@@ -215,22 +210,6 @@ export default function HtopPage() {
               </CardContent>
             </Card>
 
-            <Card className="glass border-[hsl(15_85%_55%)]/20">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-[hsl(15_85%_55%)]/10">
-                    <Activity className="w-5 h-5 text-[hsl(15_85%_55%)]" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold font-mono">
-                      {blobStats.totalNamespaces}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Namespaces</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
             <Card className="glass border-[hsl(35_90%_55%)]/20">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
@@ -247,29 +226,6 @@ export default function HtopPage() {
               </CardContent>
             </Card>
           </div>
-        )}
-
-        {/* Backend Wallet Status */}
-        {backendWallet && (
-          <Card className="glass border-primary/20 mb-8">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <Wallet className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground font-mono">Backend Wallet</p>
-                    <p className="text-sm font-mono">{truncateAddress(backendWallet.address)}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs text-muted-foreground">Available Balance</p>
-                  <p className="text-xl font-bold font-mono text-primary">{backendWallet.balance}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         )}
 
         {/* Namespace Activity Leaderboard */}

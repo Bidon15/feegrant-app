@@ -19,10 +19,19 @@ export const statsRouter = createTRPCRouter({
     }
     const uniqueAddresses = Array.from(uniqueAddressesByUser.values());
 
-    // Count unique addresses with feegrant (must have BOTH isDusted AND hasFeeGrant)
-    const feegrantedCount = uniqueAddresses.filter(
+    // Get addresses with feegrant (must have BOTH isDusted AND hasFeeGrant)
+    const feegrantedAddresses = uniqueAddresses.filter(
       (addr) => addr.isDusted && addr.hasFeeGrant
-    ).length;
+    );
+
+    // Calculate total TIA feegranted (sum of feeAllowanceRemaining from all feegranted addresses)
+    // Each feegrant is typically 1 TIA (1,000,000 utia)
+    const totalFeegrantedUtia = feegrantedAddresses.reduce((sum, addr) => {
+      const remaining = parseInt(addr.feeAllowanceRemaining ?? "0");
+      // If they have remaining, they likely received the full grant amount
+      // We count the original grant amount (1 TIA = 1,000,000 utia per user)
+      return sum + (remaining > 0 ? 1000000 : 0);
+    }, 0);
 
     // Get all namespaces and deduplicate by namespaceId
     const allNamespaces = await ctx.db.findMany<Namespace>(COLLECTIONS.namespaces, {}, { limit: 1000 });
@@ -39,7 +48,9 @@ export const statsRouter = createTRPCRouter({
       users: {
         total: totalUsers,
         withAddress: uniqueAddresses.length,
-        feegranted: feegrantedCount,
+        feegrantedCount: feegrantedAddresses.length,
+        totalFeegranted: totalFeegrantedUtia,
+        totalFeegrantedFormatted: formatTia(totalFeegrantedUtia),
       },
       namespaces: uniqueNamespacesCount,
     };

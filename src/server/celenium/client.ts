@@ -108,11 +108,23 @@ export async function getNamespace(namespaceId: string, version = 0): Promise<Ce
     const response = await fetch(`${CELENIUM_API_BASE}/namespace/${paddedId}/${version}`, {
       headers: getHeaders(),
     });
+
+    // 204 No Content means namespace doesn't exist on chain yet
+    if (response.status === 204 || response.status === 404) {
+      return null;
+    }
+
     if (!response.ok) {
-      if (response.status === 404 || response.status === 204) return null;
       throw new Error(`Celenium API error: ${response.status}`);
     }
-    return await response.json() as CeleniumNamespace;
+
+    // Check if there's actually content to parse
+    const text = await response.text();
+    if (!text || text.trim() === "") {
+      return null;
+    }
+
+    return JSON.parse(text) as CeleniumNamespace;
   } catch (error) {
     console.error("[Celenium] getNamespace error:", error);
     return null;
@@ -138,12 +150,22 @@ export async function getNamespaceBlobs(
       headers: getHeaders(),
     });
 
+    // 204 No Content means no blobs exist yet
+    if (response.status === 204 || response.status === 404) {
+      return [];
+    }
+
     if (!response.ok) {
-      if (response.status === 404 || response.status === 204) return [];
       throw new Error(`Celenium API error: ${response.status}`);
     }
 
-    return await response.json() as CeleniumBlobLog[];
+    // Check if there's actually content to parse
+    const text = await response.text();
+    if (!text || text.trim() === "") {
+      return [];
+    }
+
+    return JSON.parse(text) as CeleniumBlobLog[];
   } catch (error) {
     console.error("[Celenium] getNamespaceBlobs error:", error);
     return [];
@@ -167,12 +189,21 @@ export async function getAddressBlobs(
       headers: getHeaders(),
     });
 
+    // 204 No Content means no blobs exist
+    if (response.status === 204 || response.status === 404) {
+      return { total: 0, items: [] };
+    }
+
     if (!response.ok) {
-      if (response.status === 404) return { total: 0, items: [] };
       throw new Error(`Celenium API error: ${response.status}`);
     }
 
-    return await response.json() as CeleniumAddressBlobs;
+    const text = await response.text();
+    if (!text || text.trim() === "") {
+      return { total: 0, items: [] };
+    }
+
+    return JSON.parse(text) as CeleniumAddressBlobs;
   } catch (error) {
     console.error("[Celenium] getAddressBlobs error:", error);
     return { total: 0, items: [] };
@@ -195,12 +226,21 @@ export async function getBlob(
       }
     );
 
+    // 204 No Content means blob doesn't exist
+    if (response.status === 204 || response.status === 404) {
+      return null;
+    }
+
     if (!response.ok) {
-      if (response.status === 404) return null;
       throw new Error(`Celenium API error: ${response.status}`);
     }
 
-    return await response.json() as CeleniumBlob;
+    const text = await response.text();
+    if (!text || text.trim() === "") {
+      return null;
+    }
+
+    return JSON.parse(text) as CeleniumBlob;
   } catch (error) {
     console.error("[Celenium] getBlob error:", error);
     return null;
