@@ -593,3 +593,59 @@ export async function verifyIndexes(): Promise<{
     };
   }
 }
+
+/**
+ * Rebuild indexes for a specific collection by dropping and recreating them.
+ * Use this when indexes aren't working properly (e.g., queries returning unfiltered results).
+ */
+export async function rebuildCollectionIndexes(collectionName: string): Promise<{
+  success: boolean;
+  dropped: string[];
+  created: string[];
+  errors: string[];
+}> {
+  const dbManager = onchaindbClient.database(env.ONCHAINDB_APP_ID);
+  const result = {
+    success: true,
+    dropped: [] as string[],
+    created: [] as string[],
+    errors: [] as string[],
+  };
+
+  // Get indexes for this collection
+  const collectionIndexes = INDEXES.filter(idx => idx.collection === collectionName);
+
+  console.log(`[OnChainDB Schema] Rebuilding ${collectionIndexes.length} indexes for ${collectionName}...`);
+
+  // Step 1: Try to drop existing indexes
+  for (const indexDef of collectionIndexes) {
+    try {
+      await dbManager.dropIndex(indexDef.collection, indexDef.name);
+      console.log(`[OnChainDB Schema] Dropped index: ${indexDef.name}`);
+      result.dropped.push(indexDef.name);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      // Index might not exist, which is fine
+      if (!errorMsg.includes("not found") && !errorMsg.includes("404")) {
+        console.error(`[OnChainDB Schema] Error dropping index ${indexDef.name}:`, errorMsg);
+        result.errors.push(`Drop ${indexDef.name}: ${errorMsg}`);
+      }
+    }
+  }
+
+  // Step 2: Recreate indexes
+  for (const indexDef of collectionIndexes) {
+    try {
+      await dbManager.createIndex(indexDef);
+      console.log(`[OnChainDB Schema] Created index: ${indexDef.name}`);
+      result.created.push(indexDef.name);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error(`[OnChainDB Schema] Error creating index ${indexDef.name}:`, errorMsg);
+      result.errors.push(`Create ${indexDef.name}: ${errorMsg}`);
+      result.success = false;
+    }
+  }
+
+  return result;
+}
