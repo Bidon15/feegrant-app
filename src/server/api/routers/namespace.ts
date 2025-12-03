@@ -495,13 +495,18 @@ export const namespaceRouter = createTRPCRouter({
       }
 
       // Check if this repo is already linked to this namespace
-      const existing = await ctx.db.findMany<NamespaceRepo>(
+      // Query by namespaceId only since multi-field queries may not work well in OnChainDB
+      console.log("[Namespace] Checking for existing links in collection:", COLLECTIONS.namespaceRepos);
+      const allLinksForNamespace = await ctx.db.findMany<NamespaceRepo>(
         COLLECTIONS.namespaceRepos,
-        { namespaceId: input.namespaceId, repoId: input.repoId },
-        { limit: 1 }
+        { namespaceId: input.namespaceId }
       );
 
-      console.log("[Namespace] Existing links found:", existing.length);
+      console.log("[Namespace] All links for namespace:", allLinksForNamespace.length, allLinksForNamespace.map(l => ({ id: l.id, repoId: l.repoId })));
+
+      // Filter in-memory to check for existing link
+      const existing = allLinksForNamespace.filter(link => link.repoId === input.repoId);
+      console.log("[Namespace] Existing links for this repo:", existing.length);
 
       if (existing.length > 0) {
         throw new TRPCError({
@@ -528,9 +533,18 @@ export const namespaceRouter = createTRPCRouter({
         createdAt: nowISO(),
       };
 
-      console.log("[Namespace] Creating namespace-repo link:", namespaceRepo.id);
-      await ctx.db.createDocument(COLLECTIONS.namespaceRepos, namespaceRepo);
-      console.log("[Namespace] Successfully created namespace-repo link");
+      console.log("[Namespace] Creating namespace-repo link:", JSON.stringify(namespaceRepo, null, 2));
+
+      try {
+        await ctx.db.createDocument(COLLECTIONS.namespaceRepos, namespaceRepo);
+        console.log("[Namespace] Successfully created namespace-repo link");
+      } catch (error) {
+        console.error("[Namespace] Error creating namespace-repo link:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Failed to link repo: ${error instanceof Error ? error.message : String(error)}`,
+        });
+      }
 
       return namespaceRepo;
     }),

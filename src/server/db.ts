@@ -186,10 +186,12 @@ export const db: DBClient = {
     options?: FindManyOptions
   ): Promise<T[]> {
     try {
+      console.log(`[OnChainDB] findMany in ${collection}:`, { query, options });
       const result = await onchaindbClient.findMany<T & { deleted?: boolean }>(collection, query, {
         limit: options?.limit,
         sort: options?.sort,
       });
+      console.log(`[OnChainDB] findMany result in ${collection}:`, { count: result.length });
       // Filter out soft-deleted documents
       return result.filter((item) => !item.deleted) as T[];
     } catch (error) {
@@ -210,9 +212,11 @@ export const db: DBClient = {
         updatedAt: (record.updatedAt as string) || now,
       };
 
+      console.log(`[OnChainDB] createDocument in ${collection}:`, { id: dataWithMeta.id });
+
       // Use the store method for write operations
       // This handles x402 payment flow automatically
-      await onchaindbClient.store(
+      const result = await onchaindbClient.store(
         {
           collection,
           data: [dataWithMeta],
@@ -221,6 +225,8 @@ export const db: DBClient = {
         createPaymentCallback() as (quote: PaymentQuote) => Promise<{ txHash: string; network?: string }>,
         true // waitForConfirmation
       );
+
+      console.log(`[OnChainDB] createDocument success in ${collection}:`, { id: dataWithMeta.id, result });
 
       return dataWithMeta as T;
     } catch (error) {
