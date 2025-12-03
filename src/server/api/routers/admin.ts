@@ -129,15 +129,28 @@ export const adminRouter = createTRPCRouter({
         });
       }
 
-      // Verify the authz grant exists on-chain
+      // Try to verify authz grant on-chain with retries (blockchain indexing can be slow)
       const backendAddress = await getBackendAddress();
-      const authzGrant = await queryAuthzGrant(input.celestiaAddress, backendAddress);
+      let authzGrant = null;
 
-      if (!authzGrant) {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        authzGrant = await queryAuthzGrant(input.celestiaAddress, backendAddress);
+        if (authzGrant) break;
+        // Wait 2 seconds before retry
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        console.log(`[Authz] Retry ${attempt + 1}/3 - waiting for chain indexing...`);
+      }
+
+      // If we have a txHash, trust it even if on-chain query fails (indexing delay)
+      if (!authzGrant && !input.txHash) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "Authz grant not found on-chain. Please ensure the transaction was confirmed.",
         });
+      }
+
+      if (!authzGrant) {
+        console.log(`[Authz] Grant not yet indexed, but txHash provided: ${input.txHash}`);
       }
 
       // Update admin record
