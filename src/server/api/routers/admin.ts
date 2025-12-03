@@ -30,13 +30,49 @@ export const adminRouter = createTRPCRouter({
         return { isAdmin: false, admin: null };
       }
 
+      // Check on-chain authz status and sync with database
+      let hasAuthzGrant = admin.hasAuthzGrant;
+      const backendAddress = await getBackendAddress();
+      const onChainGrant = await queryAuthzGrant(input.celestiaAddress, backendAddress);
+
+      // If on-chain grant exists but DB says no, update DB
+      if (onChainGrant && !admin.hasAuthzGrant) {
+        console.log(`[Authz] Found on-chain grant for ${input.celestiaAddress}, syncing to DB`);
+        await db.updateDocument<Admin>(
+          COLLECTIONS.admins,
+          { id: admin.id },
+          {
+            hasAuthzGrant: true,
+            authzExpiresAt: onChainGrant.expiration,
+            updatedAt: nowISO(),
+          }
+        );
+        hasAuthzGrant = true;
+      }
+
+      // If DB says yes but on-chain grant is gone (expired/revoked), update DB
+      if (!onChainGrant && admin.hasAuthzGrant) {
+        console.log(`[Authz] On-chain grant expired/revoked for ${input.celestiaAddress}, syncing to DB`);
+        await db.updateDocument<Admin>(
+          COLLECTIONS.admins,
+          { id: admin.id },
+          {
+            hasAuthzGrant: false,
+            authzGrantTxHash: null,
+            authzExpiresAt: null,
+            updatedAt: nowISO(),
+          }
+        );
+        hasAuthzGrant = false;
+      }
+
       return {
         isAdmin: true,
         admin: {
           id: admin.id,
           name: admin.name,
           celestiaAddress: admin.celestiaAddress,
-          hasAuthzGrant: admin.hasAuthzGrant,
+          hasAuthzGrant,
           totalFeegrantsIssued: admin.totalFeegrantsIssued,
           totalUtiaGranted: admin.totalUtiaGranted,
           defaultAmountUtia: admin.defaultAmountUtia,
