@@ -179,9 +179,12 @@ export default function AdminPage() {
       registry.register("/cosmos.authz.v1beta1.MsgGrant", MsgGrant as Parameters<typeof registry.register>[1]);
       registry.register("/cosmos.authz.v1beta1.GenericAuthorization", GenericAuthorization as Parameters<typeof registry.register>[1]);
 
-      // Use Keplr's RPC for mocha-4
-      const rpcEndpoint = "https://rpc-mocha.pops.one";
-      console.log("[Authz] Connecting to RPC:", rpcEndpoint);
+      // Get CORS-friendly RPC from Keplr's chain info
+      const chainInfo = await window.keplr.getChainInfosWithoutEndpoints();
+      const celestiaChain = chainInfo.find(c => c.chainId === CELESTIA_MOCHA_CHAIN_ID);
+      // Use public CORS-enabled RPC endpoint
+      const rpcEndpoint = "https://celestia-testnet-rpc.polkachu.com";
+      console.log("[Authz] Connecting to RPC:", rpcEndpoint, "Chain:", celestiaChain?.chainName);
       const client = await SigningStargateClient.connectWithSigner(
         rpcEndpoint,
         offlineSigner,
