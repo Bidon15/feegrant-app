@@ -10,34 +10,58 @@ export const statsRouter = createTRPCRouter({
     // Count total users
     const totalUsers = await ctx.db.countDocuments(COLLECTIONS.users, {});
 
-    // Count addresses with various states
-    const totalAddresses = await ctx.db.countDocuments(COLLECTIONS.addresses, {});
-    const feegrantedAddresses = await ctx.db.countDocuments(
-      COLLECTIONS.addresses,
-      { hasFeeGrant: true }
-    );
+    // Get all addresses and deduplicate by userId (one wallet per user)
+    const allAddresses = await ctx.db.findMany<Address>(COLLECTIONS.addresses, {}, { limit: 1000 });
+    const uniqueAddressesByUser = new Map<string, Address>();
+    for (const addr of allAddresses) {
+      // Keep the most recent address per user (last one wins since we iterate in order)
+      uniqueAddressesByUser.set(addr.userId, addr);
+    }
+    const uniqueAddresses = Array.from(uniqueAddressesByUser.values());
 
-    // Count namespaces
-    const totalNamespaces = await ctx.db.countDocuments(COLLECTIONS.namespaces, {});
+    // Count unique addresses with feegrant (must have BOTH isDusted AND hasFeeGrant)
+    const feegrantedCount = uniqueAddresses.filter(
+      (addr) => addr.isDusted && addr.hasFeeGrant
+    ).length;
+
+    // Get all namespaces and deduplicate by namespaceId
+    const allNamespaces = await ctx.db.findMany<Namespace>(COLLECTIONS.namespaces, {}, { limit: 1000 });
+    const uniqueNamespacesByNsId = new Map<string, Namespace>();
+    for (const ns of allNamespaces) {
+      // Keep the first one per namespaceId
+      if (!uniqueNamespacesByNsId.has(ns.namespaceId)) {
+        uniqueNamespacesByNsId.set(ns.namespaceId, ns);
+      }
+    }
+    const uniqueNamespacesCount = uniqueNamespacesByNsId.size;
 
     return {
       users: {
         total: totalUsers,
-        withAddress: totalAddresses,
-        feegranted: feegrantedAddresses,
+        withAddress: uniqueAddresses.length,
+        feegranted: feegrantedCount,
       },
-      namespaces: totalNamespaces,
+      namespaces: uniqueNamespacesCount,
     };
   }),
 
   // Get leaderboard by namespace activity (blobs submitted)
   leaderboard: publicProcedure.query(async ({ ctx }) => {
     // Get all namespaces
-    const namespaces = await ctx.db.findMany<Namespace>(
+    const allNamespaces = await ctx.db.findMany<Namespace>(
       COLLECTIONS.namespaces,
       {},
       { limit: 100 }
     );
+
+    // Deduplicate namespaces by namespaceId (keep first occurrence)
+    const uniqueNamespacesByNsId = new Map<string, Namespace>();
+    for (const ns of allNamespaces) {
+      if (!uniqueNamespacesByNsId.has(ns.namespaceId)) {
+        uniqueNamespacesByNsId.set(ns.namespaceId, ns);
+      }
+    }
+    const namespaces = Array.from(uniqueNamespacesByNsId.values());
 
     // Get all namespace-repo links
     const allNamespaceRepos = await ctx.db.findMany<NamespaceRepo>(
@@ -46,7 +70,7 @@ export const statsRouter = createTRPCRouter({
       { limit: 500 }
     );
 
-    // Group repos by namespace ID
+    // Group repos by namespace ID (db record id, not Celestia namespaceId)
     const reposByNamespace = new Map<string, NamespaceRepo[]>();
     for (const repo of allNamespaceRepos) {
       const existing = reposByNamespace.get(repo.namespaceId) ?? [];
@@ -54,7 +78,7 @@ export const statsRouter = createTRPCRouter({
       reposByNamespace.set(repo.namespaceId, existing);
     }
 
-    // Fetch stats for each namespace from Celenium and enrich with user data
+    // Fetch stats for each unique namespace from Celenium and enrich with user data
     const entries = await Promise.all(
       namespaces.map(async (ns) => {
         const stats = await getNamespaceStats(ns.namespaceId);
@@ -191,11 +215,20 @@ export const statsRouter = createTRPCRouter({
   // Get global blob stats across all namespaces (for htop)
   globalBlobStats: publicProcedure.query(async ({ ctx }) => {
     // Get all namespaces
-    const namespaces = await ctx.db.findMany<Namespace>(
+    const allNamespaces = await ctx.db.findMany<Namespace>(
       COLLECTIONS.namespaces,
       {},
       { limit: 100 }
     );
+
+    // Deduplicate namespaces by namespaceId (keep first occurrence)
+    const uniqueNamespacesByNsId = new Map<string, Namespace>();
+    for (const ns of allNamespaces) {
+      if (!uniqueNamespacesByNsId.has(ns.namespaceId)) {
+        uniqueNamespacesByNsId.set(ns.namespaceId, ns);
+      }
+    }
+    const namespaces = Array.from(uniqueNamespacesByNsId.values());
 
     // Aggregate stats from Celenium
     let totalBlobs = 0;

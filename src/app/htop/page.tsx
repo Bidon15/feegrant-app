@@ -359,9 +359,14 @@ export default function HtopPage() {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1 text-xs bg-muted/30 px-2 py-0.5 rounded hover:bg-muted/50 transition-colors"
+                                title={repo.fullName}
                               >
-                                <Github className="w-3 h-3" />
-                                <span className="truncate max-w-[80px]">{repo.fullName.split("/")[1]}</span>
+                                <Github className="w-3 h-3 flex-shrink-0" />
+                                <span className="truncate max-w-[120px]">
+                                  {repo.fullName.length > 20
+                                    ? `${repo.fullName.slice(0, 18)}...`
+                                    : repo.fullName}
+                                </span>
                               </a>
                             ))}
                             {entry.linkedRepos.length > 2 && (
