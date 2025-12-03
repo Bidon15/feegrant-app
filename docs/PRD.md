@@ -259,9 +259,223 @@ SCHEMA_INIT_SECRET=           # Secret for schema management API
 
 ---
 
-## Future Features (Planned)
+## Feature: Admin Panel (Next Priority)
 
-> This section will be updated as we plan new features
+### Problem Statement
+
+Currently, the backend wallet automatically issues feegrants to all users with no differentiation. There's no way to:
+1. Reward active developers with larger feegrants
+2. Use admin's own funds instead of backend wallet
+3. Have multiple admins with their own feegrant budgets
+
+### Solution: Admin Panel with Keplr-Signed Feegrants
+
+#### User Flow
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     ADMIN PANEL FLOW                        │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  1. Navigate to /admin                                      │
+│     └─→ Connect Keplr wallet                               │
+│                                                             │
+│  2. Verify Admin Status                                     │
+│     └─→ Check if connected address is in admins collection │
+│                                                             │
+│  3. One-time Authz Setup                                    │
+│     └─→ Sign MsgGrant to allow backend to execute          │
+│         MsgGrantAllowance on admin's behalf                │
+│                                                             │
+│  4. Manage Feegrants                                        │
+│     ├─→ View htop leaderboard with admin actions           │
+│     ├─→ Select user(s) to reward                           │
+│     ├─→ Set feegrant amount (e.g., 5 TIA, 10 TIA)          │
+│     └─→ Backend executes MsgExec(MsgGrantAllowance)        │
+│         using admin's authz grant                          │
+│                                                             │
+│  5. Track Admin Activity                                    │
+│     └─→ View history of feegrants issued by this admin     │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### Data Model Changes
+
+```
+admins (new collection)
+├── id: string (primary)
+├── celestiaAddress: string (unique) - Admin's Celestia bech32 address
+├── userId: string | null (FK → users) - Optional link to GitHub account
+├── name: string - Display name for admin
+├── hasAuthzGrant: boolean - Whether authz is set up
+├── authzGrantTxHash: string | null - Tx hash of authz grant
+├── totalFeegrantsIssued: number - Count of feegrants issued
+├── totalTiaGranted: string - Total uTIA granted by this admin
+├── isActive: boolean - Can be deactivated without deletion
+├── createdAt: string
+└── updatedAt: string
+
+admin_feegrants (new collection)
+├── id: string (primary)
+├── adminId: string (FK → admins)
+├── adminAddress: string - Admin's address (denormalized)
+├── recipientAddress: string - User receiving the feegrant
+├── recipientUserId: string | null - Optional link to user
+├── amount: string - Amount in uTIA (e.g., "5000000" for 5 TIA)
+├── txHash: string - Transaction hash
+├── status: string - "pending" | "success" | "failed"
+├── createdAt: string
+└── updatedAt: string
+```
+
+#### Authz Message Structure
+
+Admin grants backend permission to execute `MsgGrantAllowance` on their behalf:
+
+```typescript
+// Admin signs this message once
+const authzGrant = {
+  typeUrl: "/cosmos.authz.v1beta1.MsgGrant",
+  value: {
+    granter: adminAddress,      // Admin's Celestia address
+    grantee: backendAddress,    // Backend wallet address
+    grant: {
+      authorization: {
+        typeUrl: "/cosmos.authz.v1beta1.GenericAuthorization",
+        value: {
+          msg: "/cosmos.feegrant.v1beta1.MsgGrantAllowance"
+        }
+      },
+      expiration: null  // No expiration (or set a long duration)
+    }
+  }
+};
+```
+
+#### Backend Execution
+
+When admin wants to issue a feegrant:
+
+```typescript
+// Backend builds and broadcasts this
+const execMsg = {
+  typeUrl: "/cosmos.authz.v1beta1.MsgExec",
+  value: {
+    grantee: backendAddress,
+    msgs: [{
+      typeUrl: "/cosmos.feegrant.v1beta1.MsgGrantAllowance",
+      value: {
+        granter: adminAddress,      // Admin pays for the feegrant
+        grantee: recipientAddress,  // User receiving feegrant
+        allowance: {
+          typeUrl: "/cosmos.feegrant.v1beta1.BasicAllowance",
+          value: {
+            spendLimit: [{ denom: "utia", amount: "5000000" }]  // 5 TIA
+          }
+        }
+      }
+    }]
+  }
+};
+```
+
+#### API Routes (tRPC)
+
+```
+admin.verifyAdmin       - Check if connected wallet is admin
+admin.getAuthzStatus    - Check if authz grant exists on-chain
+admin.setupAuthz        - Record authz grant tx hash after signing
+admin.listUsers         - Get users with funding status (for admin view)
+admin.issueFeegrant     - Issue feegrant to specific address
+admin.getHistory        - Get admin's feegrant history
+admin.getStats          - Get admin's total grants issued
+```
+
+#### UI Components
+
+**1. Admin Gate (`/admin`)**
+- Connect Keplr button
+- Verify admin status against `admins` collection
+- Show "Not authorized" if address not in admins
+
+**2. Authz Setup Card**
+- Check on-chain if authz exists (query feegrant module)
+- If not: Show "Setup Authz" button → Keplr signing flow
+- If yes: Show green checkmark with grant details
+
+**3. Leaderboard with Admin Actions**
+- Same as htop but with action buttons
+- "Grant 1 TIA", "Grant 5 TIA", "Grant 10 TIA" buttons per user
+- Custom amount input field
+- Bulk select for multiple users
+
+**4. Admin Activity Log**
+- Table of feegrants issued by this admin
+- Columns: Recipient, Amount, Date, Tx Hash, Status
+- Filter by date range
+
+**5. Admin Stats Dashboard**
+- Total TIA granted
+- Number of users funded
+- Admin's wallet balance
+- Feegrant allowance remaining (if admin set a budget)
+
+#### Security Considerations
+
+1. **Admin verification**: Only addresses in `admins` collection can access
+2. **On-chain authz**: Backend cannot issue grants without valid authz
+3. **Admin funds**: Feegrants come from admin's wallet, not backend
+4. **Audit trail**: All grants logged in `admin_feegrants` collection
+5. **Revocation**: Admins can revoke authz at any time via Keplr
+
+#### Initial Admin Setup (Script)
+
+```typescript
+// One-time script to add initial admin(s)
+await db.createDocument(COLLECTIONS.admins, {
+  id: generateId(),
+  celestiaAddress: "celestia1...",  // Your address
+  name: "Primary Admin",
+  hasAuthzGrant: false,
+  authzGrantTxHash: null,
+  totalFeegrantsIssued: 0,
+  totalTiaGranted: "0",
+  isActive: true,
+  createdAt: nowISO(),
+  updatedAt: nowISO(),
+});
+```
+
+#### Implementation Order
+
+1. **Phase 1: Data & Auth**
+   - [ ] Add `admins` collection to OnChainDB schema
+   - [ ] Add `admin_feegrants` collection
+   - [ ] Create admin verification tRPC endpoint
+   - [ ] Create `/admin` page with Keplr connection
+
+2. **Phase 2: Authz Flow**
+   - [ ] Implement authz grant message building
+   - [ ] Create Keplr signing flow for authz
+   - [ ] Store authz grant status in OnChainDB
+   - [ ] Query on-chain authz status
+
+3. **Phase 3: Feegrant Execution**
+   - [ ] Build MsgExec(MsgGrantAllowance) message
+   - [ ] Implement backend execution via authz
+   - [ ] Record feegrant transactions
+   - [ ] Handle success/failure states
+
+4. **Phase 4: UI Polish**
+   - [ ] Enhanced leaderboard with admin actions
+   - [ ] Bulk grant functionality
+   - [ ] Admin activity history
+   - [ ] Stats dashboard
+
+---
+
+## Future Features (Planned)
 
 ### Phase 2: Enhanced Developer Experience
 - [ ] API key generation for programmatic access
