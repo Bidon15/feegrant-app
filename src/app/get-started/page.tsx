@@ -22,6 +22,8 @@ import {
   Box,
   CheckCircle2,
   XCircle,
+  GitBranch,
+  Copy,
 } from "lucide-react";
 import { api } from "~/trpc/react";
 import { Button } from "~/components/ui/button";
@@ -32,7 +34,10 @@ const envExample = `# .env - Your Celestia configuration
 CELESTIA_PRIVATE_KEY="your_hex_private_key_here"
 CELESTIA_RPC_URL="http://localhost:26658"
 CELESTIA_GRPC_URL="http://localhost:9090"
-CELESTIA_NETWORK="mocha-4"`;
+CELESTIA_NETWORK="mocha-4"
+
+# Feegranter address from BlobCell (copy from your profile)
+CELESTIA_FEEGRANTER="celestia1..."  # Your feegranter address`;
 
 const goExample = `package main
 
@@ -47,6 +52,7 @@ import (
 	libshare "github.com/celestiaorg/go-square/v2/share"
 	"github.com/celestiaorg/celestia-node/api/client"
 	"github.com/celestiaorg/celestia-node/blob"
+	"github.com/celestiaorg/celestia-node/state"
 )
 
 func main() {
@@ -93,8 +99,13 @@ func main() {
 	// Create namespace for your blobs
 	namespace := libshare.MustNewV0Namespace([]byte("blobcell"))
 
+	// Configure feegrant - BlobCell pays your fees!
+	feegranter := os.Getenv("CELESTIA_FEEGRANTER")
+	submitOpts := state.NewTxConfig(state.WithFeeGranterAddress(feegranter))
+
 	// Submit 3 blobs to demonstrate the workflow
 	fmt.Println("Submitting 3 blobs to Celestia...\\n")
+	fmt.Printf("Using feegranter: %s\\n\\n", feegranter)
 
 	for i := 1; i <= 3; i++ {
 		// Create unique blob data
@@ -106,8 +117,8 @@ func main() {
 			panic(fmt.Sprintf("Failed to create blob %d: %v", i, err))
 		}
 
-		// Submit - your fee grant covers this!
-		height, err := c.Blob.Submit(ctx, []*blob.Blob{b}, nil)
+		// Submit with feegrant - BlobCell pays the fees!
+		height, err := c.Blob.Submit(ctx, []*blob.Blob{b}, submitOpts)
 		if err != nil {
 			panic(fmt.Sprintf("Failed to submit blob %d: %v", i, err))
 		}
@@ -162,6 +173,8 @@ async fn main() -> Result<()> {
         .unwrap_or_else(|_| "http://localhost:9090".to_string());
     let private_key = env::var("CELESTIA_PRIVATE_KEY")
         .expect("CELESTIA_PRIVATE_KEY must be set");
+    let feegranter = env::var("CELESTIA_FEEGRANTER")
+        .expect("CELESTIA_FEEGRANTER must be set");
 
     // Create client
     let client = Client::builder()
@@ -174,7 +187,13 @@ async fn main() -> Result<()> {
     // Create namespace for your blobs
     let ns = Namespace::new_v0(b"blobcell")?;
 
+    // Configure feegrant - BlobCell pays your fees!
+    let tx_config = TxConfig::builder()
+        .fee_granter(&feegranter)
+        .build();
+
     println!("Submitting 3 blobs to Celestia...\\n");
+    println!("Using feegranter: {}\\n", feegranter);
 
     // Submit 3 blobs to demonstrate the workflow
     for i in 1..=3 {
@@ -195,8 +214,8 @@ async fn main() -> Result<()> {
         // Store commitment for verification
         let commitment = blob.commitment.clone();
 
-        // Submit - your fee grant covers this!
-        let tx_info = client.blob().submit(&[blob], TxConfig::default()).await?;
+        // Submit with feegrant - BlobCell pays the fees!
+        let tx_info = client.blob().submit(&[blob], tx_config.clone()).await?;
         println!("✓ Blob {} submitted at height {}", i, tx_info.height.value());
 
         // Verify by retrieving
