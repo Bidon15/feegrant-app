@@ -89,23 +89,22 @@ export const namespaceRouter = createTRPCRouter({
     }),
 
   // Check namespace availability (for UI feedback)
+  // Now accepts full name (prefix/name) so users can customize the prefix
   checkAvailability: protectedProcedure
-    .input(z.object({ name: z.string() }))
+    .input(z.object({ fullName: z.string() }))
     .query(async ({ ctx, input }) => {
-      // Get user's github login for prefix
-      const user = await ctx.db.findUnique<User>(COLLECTIONS.users, {
-        id: ctx.session.user.id,
-      });
+      const fullName = input.fullName.toLowerCase();
 
-      if (!user?.githubLogin) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "User github login not found",
-        });
+      // Validate format - must have at least one slash
+      if (!fullName.includes("/")) {
+        return {
+          available: false,
+          fullName,
+          namespaceId: null,
+          reason: "Namespace must be in format: prefix/name",
+          reasonType: "invalid_format" as const,
+        };
       }
-
-      // Build full namespace name with user prefix
-      const fullName = `${user.githubLogin.toLowerCase()}/${input.name}`;
 
       // Check in our database first
       const existingInDb = await ctx.db.findMany<Namespace>(
@@ -114,66 +113,66 @@ export const namespaceRouter = createTRPCRouter({
         { limit: 1 }
       );
 
+      // Generate the namespace ID for Celenium lookup
+      const namespaceId = generateNamespaceIdFromName(fullName);
+
       if (existingInDb.length > 0) {
+        // Check if it belongs to current user
+        const isOwn = existingInDb[0]!.userId === ctx.session.user.id;
         return {
           available: false,
           fullName,
-          reason: "You already have a namespace with this name",
+          namespaceId,
+          reason: isOwn
+            ? "You already have a namespace with this name"
+            : "This namespace name is already taken",
+          reasonType: "exists_in_db" as const,
         };
       }
 
       // Check on Celenium if namespace ID is already used on chain
-      // Note: We generate a deterministic namespace ID from the name
-      const potentialNamespaceId = generateNamespaceIdFromName(fullName);
-      const celeniumNs = await getCeleniumNamespace(potentialNamespaceId);
+      const celeniumNs = await getCeleniumNamespace(namespaceId);
 
       if (celeniumNs && celeniumNs.pfb_count > 0) {
         return {
           available: false,
           fullName,
+          namespaceId,
           reason: "This namespace already has blobs on Celestia",
+          reasonType: "exists_on_chain" as const,
+          celeniumUrl: `https://mocha.celenium.io/namespace/${namespaceId.padStart(56, "0")}`,
         };
       }
 
       return {
         available: true,
         fullName,
+        namespaceId,
         reason: null,
+        reasonType: null,
       };
     }),
 
   // Create a new namespace
+  // Now accepts full name (prefix/name) so users can customize the prefix
   create: protectedProcedure
     .input(
       z.object({
-        name: z
+        fullName: z
           .string()
-          .min(1, "Name must be at least 1 character")
-          .max(50, "Name must be at most 50 characters")
+          .min(3, "Name must be at least 3 characters")
+          .max(100, "Name must be at most 100 characters")
           .regex(
-            /^[a-z0-9]+(?:\/[a-z0-9-]+)*$/,
-            "Name must be lowercase letters, numbers, and slashes (e.g., myapp/production)"
+            /^[a-z0-9-]+\/[a-z0-9-/]+$/,
+            "Name must be in format: prefix/name (lowercase letters, numbers, hyphens)"
           ),
         description: z.string().max(200).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      // Get user's github login for prefix
-      const user = await ctx.db.findUnique<User>(COLLECTIONS.users, {
-        id: ctx.session.user.id,
-      });
+      const fullName = input.fullName.toLowerCase();
 
-      if (!user?.githubLogin) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "User github login not found",
-        });
-      }
-
-      // Build full namespace name with user prefix
-      const fullName = `${user.githubLogin.toLowerCase()}/${input.name}`;
-
-      // Check if namespace name already exists for this user
+      // Check if namespace name already exists
       const existing = await ctx.db.findMany<Namespace>(
         COLLECTIONS.namespaces,
         { name: fullName },
@@ -183,7 +182,7 @@ export const namespaceRouter = createTRPCRouter({
       if (existing.length > 0) {
         throw new TRPCError({
           code: "CONFLICT",
-          message: "You already have a namespace with this name",
+          message: "A namespace with this name already exists",
         });
       }
 

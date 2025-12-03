@@ -34,7 +34,8 @@ import { formatTia } from "~/lib/formatting";
 
 export default function ProfilePage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [newNamespaceName, setNewNamespaceName] = useState("");
+  // Full namespace name including prefix (e.g., "username/myapp")
+  const [newNamespaceFullName, setNewNamespaceFullName] = useState("");
   const [isCreatingNamespace, setIsCreatingNamespace] = useState(false);
   const [namespaceError, setNamespaceError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -51,10 +52,13 @@ export default function ProfilePage() {
   const { data: myStats, isLoading, refetch } = api.stats.myStats.useQuery();
   const { data: namespaces, refetch: refetchNamespaces } = api.namespace.listWithActivity.useQuery();
 
+  // Initialize fullName with GitHub username prefix when user data is loaded
+  const githubUsername = myStats?.user?.githubLogin?.toLowerCase() ?? "";
+
   // Check namespace availability as user types
   const { data: availability, isLoading: checkingAvailability } = api.namespace.checkAvailability.useQuery(
-    { name: newNamespaceName },
-    { enabled: newNamespaceName.length >= 1 }
+    { fullName: newNamespaceFullName },
+    { enabled: newNamespaceFullName.length >= 3 && newNamespaceFullName.includes("/") }
   );
 
   // Fetch GitHub repos when adding to a namespace
@@ -65,7 +69,7 @@ export default function ProfilePage() {
 
   const createNamespace = api.namespace.create.useMutation({
     onSuccess: () => {
-      setNewNamespaceName("");
+      setNewNamespaceFullName("");
       setIsCreatingNamespace(false);
       setNamespaceError(null);
       void refetchNamespaces();
@@ -132,9 +136,17 @@ export default function ProfilePage() {
   };
 
   const handleCreateNamespace = () => {
-    if (!newNamespaceName.trim()) return;
+    if (!newNamespaceFullName.trim() || !newNamespaceFullName.includes("/")) return;
     setNamespaceError(null);
-    createNamespace.mutate({ name: newNamespaceName.toLowerCase().trim() });
+    createNamespace.mutate({ fullName: newNamespaceFullName.toLowerCase().trim() });
+  };
+
+  // When opening create form, prefill with GitHub username
+  const handleStartCreating = () => {
+    setIsCreatingNamespace(true);
+    if (!newNamespaceFullName && githubUsername) {
+      setNewNamespaceFullName(`${githubUsername}/`);
+    }
   };
 
   const copyToClipboard = (id: string, text: string) => {
@@ -467,7 +479,7 @@ export default function ProfilePage() {
               {!isCreatingNamespace && (
                 <Button
                   size="sm"
-                  onClick={() => setIsCreatingNamespace(true)}
+                  onClick={handleStartCreating}
                   className="font-mono"
                 >
                   <Plus className="w-4 h-4 mr-2" />
@@ -481,19 +493,16 @@ export default function ProfilePage() {
             {isCreatingNamespace && (
               <div className="mb-4 p-4 rounded-lg bg-muted/20 border border-border">
                 <div className="flex gap-2 items-center">
-                  <span className="font-mono text-sm text-muted-foreground whitespace-nowrap">
-                    {myStats?.user?.githubLogin?.toLowerCase() ?? "user"}/
-                  </span>
                   <Input
-                    placeholder="myapp/production"
-                    value={newNamespaceName}
-                    onChange={(e) => setNewNamespaceName(e.target.value.toLowerCase())}
+                    placeholder={`${githubUsername || "username"}/myapp`}
+                    value={newNamespaceFullName}
+                    onChange={(e) => setNewNamespaceFullName(e.target.value.toLowerCase())}
                     className="font-mono"
                     onKeyDown={(e) => e.key === "Enter" && handleCreateNamespace()}
                   />
                   <Button
                     onClick={handleCreateNamespace}
-                    disabled={createNamespace.isPending || !newNamespaceName.trim() || (availability && !availability.available)}
+                    disabled={createNamespace.isPending || !newNamespaceFullName.includes("/") || (availability && !availability.available)}
                     className="font-mono"
                   >
                     {createNamespace.isPending ? (
@@ -506,7 +515,7 @@ export default function ProfilePage() {
                     variant="ghost"
                     onClick={() => {
                       setIsCreatingNamespace(false);
-                      setNewNamespaceName("");
+                      setNewNamespaceFullName("");
                       setNamespaceError(null);
                     }}
                   >
@@ -515,23 +524,46 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Availability feedback */}
-                {newNamespaceName.length >= 1 && (
+                {newNamespaceFullName.length >= 1 && (
                   <div className="mt-2 flex items-center gap-2 text-sm">
-                    {checkingAvailability ? (
+                    {!newNamespaceFullName.includes("/") ? (
+                      <span className="flex items-center gap-1 text-muted-foreground">
+                        <XCircle className="w-3 h-3" />
+                        Namespace must be in format: prefix/name
+                      </span>
+                    ) : checkingAvailability ? (
                       <span className="flex items-center gap-1 text-muted-foreground">
                         <Loader2 className="w-3 h-3 animate-spin" />
-                        Checking availability...
+                        Checking namespace uniqueness...
                       </span>
                     ) : availability?.available ? (
                       <span className="flex items-center gap-1 text-primary">
                         <CheckCircle2 className="w-3 h-3" />
                         <code className="font-mono text-xs">{availability.fullName}</code> is available
+                        {availability.namespaceId && (
+                          <span className="text-muted-foreground text-xs">
+                            (ID: {availability.namespaceId.slice(0, 8)}...)
+                          </span>
+                        )}
                       </span>
                     ) : availability ? (
-                      <span className="flex items-center gap-1 text-destructive">
-                        <XCircle className="w-3 h-3" />
-                        {availability.reason}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className="flex items-center gap-1 text-destructive">
+                          <XCircle className="w-3 h-3" />
+                          {availability.reason}
+                        </span>
+                        {availability.reasonType === "exists_on_chain" && availability.celeniumUrl && (
+                          <a
+                            href={availability.celeniumUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-xs text-primary hover:underline ml-4"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            View on Celenium
+                          </a>
+                        )}
+                      </div>
                     ) : null}
                   </div>
                 )}
@@ -540,7 +572,7 @@ export default function ProfilePage() {
                   <p className="text-sm text-destructive mt-2">{namespaceError}</p>
                 )}
                 <p className="text-xs text-muted-foreground mt-2">
-                  Namespace will be prefixed with your GitHub username for uniqueness
+                  Format: prefix/name (e.g., {githubUsername || "username"}/myapp). You can modify the prefix if needed for team namespaces.
                 </p>
               </div>
             )}
