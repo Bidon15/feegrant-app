@@ -3,11 +3,22 @@
  */
 
 /**
- * Format uTIA amount to human-readable TIA string
+ * Format uTIA amount to human-readable string.
+ * - Shows uTIA for amounts < 10,000 uTIA (0.01 TIA) for better precision
+ * - Uses floor to avoid rounding up (e.g., 0.999 TIA shows as 0.99, not 1.00)
  */
 export function formatTia(utia: number): string {
+  // For small amounts (< 0.01 TIA), show in uTIA for clarity
+  if (utia > 0 && utia < 10_000) {
+    return `${Math.floor(utia).toLocaleString()} uTIA`;
+  }
+
   const tia = utia / 1_000_000;
-  return `${tia.toFixed(2)} TIA`;
+
+  // Use floor to truncate instead of round (multiply, floor, divide)
+  // This ensures 0.999 shows as 0.99, not 1.00
+  const truncated = Math.floor(tia * 100) / 100;
+  return `${truncated.toFixed(2)} TIA`;
 }
 
 /**

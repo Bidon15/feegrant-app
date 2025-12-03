@@ -40,6 +40,12 @@ export default function ProfilePage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   // Track which namespace is showing the repo selector
   const [addingRepoToNamespace, setAddingRepoToNamespace] = useState<string | null>(null);
+  // Track which specific repo is being added (namespaceId:repoId)
+  const [pendingRepoAdd, setPendingRepoAdd] = useState<string | null>(null);
+  // Track which specific repo is being removed (namespaceId:repoId)
+  const [pendingRepoRemove, setPendingRepoRemove] = useState<string | null>(null);
+  // Track which namespace is being deleted
+  const [pendingNamespaceDelete, setPendingNamespaceDelete] = useState<string | null>(null);
 
   // Fetch real user data from tRPC
   const { data: myStats, isLoading, refetch } = api.stats.myStats.useQuery();
@@ -72,6 +78,7 @@ export default function ProfilePage() {
   const utils = api.useUtils();
   const deleteNamespace = api.namespace.delete.useMutation({
     onMutate: async ({ id }) => {
+      setPendingNamespaceDelete(id);
       await utils.namespace.listWithActivity.cancel();
       const previousNamespaces = utils.namespace.listWithActivity.getData();
       utils.namespace.listWithActivity.setData(undefined, (old) =>
@@ -86,22 +93,35 @@ export default function ProfilePage() {
       }
     },
     onSettled: () => {
+      setPendingNamespaceDelete(null);
       void utils.namespace.listWithActivity.invalidate();
     },
   });
 
   // Add repo to namespace
   const addRepoToNamespace = api.namespace.addRepo.useMutation({
+    onMutate: ({ namespaceId, repoId }) => {
+      setPendingRepoAdd(`${namespaceId}:${repoId}`);
+    },
     onSuccess: () => {
       setAddingRepoToNamespace(null);
       void refetchNamespaces();
+    },
+    onSettled: () => {
+      setPendingRepoAdd(null);
     },
   });
 
   // Remove repo from namespace
   const removeRepoFromNamespace = api.namespace.removeRepo.useMutation({
+    onMutate: ({ namespaceId, repoId }) => {
+      setPendingRepoRemove(`${namespaceId}:${repoId}`);
+    },
     onSuccess: () => {
       void refetchNamespaces();
+    },
+    onSettled: () => {
+      setPendingRepoRemove(null);
     },
   });
 
@@ -570,11 +590,15 @@ export default function ProfilePage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => deleteNamespace.mutate({ id: ns.id })}
-                            disabled={deleteNamespace.isPending}
+                            disabled={pendingNamespaceDelete === ns.id || deleteNamespace.isPending}
                             className="text-destructive hover:text-destructive h-8 px-2"
                             title="Delete namespace"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            {pendingNamespaceDelete === ns.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
                           </Button>
                         </div>
                       </div>
@@ -633,42 +657,49 @@ export default function ProfilePage() {
                         {/* List of linked repos */}
                         {linkedReposList.length > 0 && (
                           <div className="space-y-1 mb-2">
-                            {linkedReposList.map((repo) => (
-                              <div
-                                key={repo.repoId}
-                                className="flex items-center justify-between py-1 px-2 rounded bg-background/50"
-                              >
-                                <a
-                                  href={repo.htmlUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="font-mono text-xs text-primary hover:underline flex items-center gap-1"
+                            {linkedReposList.map((repo) => {
+                              const isRemoving = pendingRepoRemove === `${ns.id}:${repo.repoId}`;
+                              return (
+                                <div
+                                  key={repo.repoId}
+                                  className={`flex items-center justify-between py-1 px-2 rounded bg-background/50 ${isRemoving ? "opacity-50" : ""}`}
                                 >
-                                  {repo.fullName}
-                                  <ExternalLink className="w-3 h-3" />
-                                </a>
-                                <div className="flex items-center gap-2">
-                                  {repo.language && (
-                                    <Badge variant="outline" className="text-xs h-5">
-                                      {repo.language}
-                                    </Badge>
-                                  )}
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => removeRepoFromNamespace.mutate({
-                                      namespaceId: ns.id,
-                                      repoId: repo.repoId,
-                                    })}
-                                    disabled={removeRepoFromNamespace.isPending}
-                                    className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive"
-                                    title="Remove repo"
+                                  <a
+                                    href={repo.htmlUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="font-mono text-xs text-primary hover:underline flex items-center gap-1"
                                   >
-                                    <X className="w-3 h-3" />
-                                  </Button>
+                                    {repo.fullName}
+                                    <ExternalLink className="w-3 h-3" />
+                                  </a>
+                                  <div className="flex items-center gap-2">
+                                    {repo.language && (
+                                      <Badge variant="outline" className="text-xs h-5">
+                                        {repo.language}
+                                      </Badge>
+                                    )}
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => removeRepoFromNamespace.mutate({
+                                        namespaceId: ns.id,
+                                        repoId: repo.repoId,
+                                      })}
+                                      disabled={isRemoving || removeRepoFromNamespace.isPending}
+                                      className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive"
+                                      title="Remove repo"
+                                    >
+                                      {isRemoving ? (
+                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                      ) : (
+                                        <X className="w-3 h-3" />
+                                      )}
+                                    </Button>
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         )}
 
@@ -681,33 +712,41 @@ export default function ProfilePage() {
                               </div>
                             ) : reposToShow.length > 0 ? (
                               <div className="space-y-1 max-h-32 overflow-y-auto">
-                                {reposToShow.slice(0, 10).map((repo) => (
-                                  <button
-                                    key={repo.id}
-                                    onClick={() => {
-                                      addRepoToNamespace.mutate({
-                                        namespaceId: ns.id,
-                                        repoId: repo.id,
-                                        fullName: repo.fullName,
-                                        name: repo.name,
-                                        owner: repo.owner,
-                                        description: repo.description,
-                                        isPrivate: repo.isPrivate,
-                                        htmlUrl: repo.htmlUrl,
-                                        language: repo.language,
-                                        stargazersCount: repo.stargazersCount,
-                                        forksCount: repo.forksCount,
-                                      });
-                                    }}
-                                    disabled={addRepoToNamespace.isPending}
-                                    className="w-full text-left px-2 py-1.5 rounded text-xs font-mono hover:bg-muted/50 transition-colors flex items-center justify-between"
-                                  >
-                                    <span className="truncate">{repo.fullName}</span>
-                                    {repo.language && (
-                                      <span className="text-muted-foreground ml-2">{repo.language}</span>
-                                    )}
-                                  </button>
-                                ))}
+                                {reposToShow.slice(0, 10).map((repo) => {
+                                  const isAdding = pendingRepoAdd === `${ns.id}:${repo.id}`;
+                                  return (
+                                    <button
+                                      key={repo.id}
+                                      onClick={() => {
+                                        addRepoToNamespace.mutate({
+                                          namespaceId: ns.id,
+                                          repoId: repo.id,
+                                          fullName: repo.fullName,
+                                          name: repo.name,
+                                          owner: repo.owner,
+                                          description: repo.description,
+                                          isPrivate: repo.isPrivate,
+                                          htmlUrl: repo.htmlUrl,
+                                          language: repo.language,
+                                          stargazersCount: repo.stargazersCount,
+                                          forksCount: repo.forksCount,
+                                        });
+                                      }}
+                                      disabled={isAdding || addRepoToNamespace.isPending}
+                                      className={`w-full text-left px-2 py-1.5 rounded text-xs font-mono hover:bg-muted/50 transition-colors flex items-center justify-between ${isAdding ? "bg-muted/30" : ""}`}
+                                    >
+                                      <span className="truncate">{repo.fullName}</span>
+                                      <span className="flex items-center gap-2">
+                                        {repo.language && (
+                                          <span className="text-muted-foreground">{repo.language}</span>
+                                        )}
+                                        {isAdding && (
+                                          <Loader2 className="w-3 h-3 animate-spin text-primary" />
+                                        )}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
                               </div>
                             ) : (
                               <p className="text-xs text-muted-foreground text-center py-2">
@@ -718,6 +757,7 @@ export default function ProfilePage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => setAddingRepoToNamespace(null)}
+                              disabled={addRepoToNamespace.isPending}
                               className="w-full mt-2 h-7 text-xs"
                             >
                               Cancel
