@@ -10,7 +10,7 @@ export const COLLECTIONS = {
   addresses: "addresses",
   verificationTokens: "verification_tokens",
   namespaces: "namespaces",
-  linkedRepos: "linked_repos",
+  namespaceRepos: "namespace_repos", // Junction table: namespace <-> repo (many-to-many)
 } as const;
 
 // Type definitions for our data models
@@ -73,15 +73,17 @@ export interface Namespace {
   totalBytes: number;
   lastActivityAt: string | null;
   isActive: boolean;
-  linkedRepoId: string | null; // Reference to LinkedRepo.id (one repo can have many namespaces)
   createdAt: string;
   updatedAt: string;
 }
 
-// LinkedRepo - GitHub repository linked to a user's BlobCell profile
-export interface LinkedRepo {
+// NamespaceRepo - Junction table linking namespaces to GitHub repos (many-to-many)
+// Stores repo info directly to avoid extra lookups
+export interface NamespaceRepo {
   id: string;
-  userId: string;
+  namespaceId: string; // Reference to Namespace.id
+  userId: string; // For easy querying
+  // GitHub repo info (denormalized for performance)
   repoId: number; // GitHub repo ID
   fullName: string; // e.g., "owner/repo"
   name: string; // e.g., "repo"
@@ -89,12 +91,10 @@ export interface LinkedRepo {
   description: string | null;
   isPrivate: boolean;
   htmlUrl: string;
-  defaultBranch: string;
   language: string | null;
   stargazersCount: number;
   forksCount: number;
   createdAt: string;
-  updatedAt: string;
 }
 
 // Initialize OnChainDB client

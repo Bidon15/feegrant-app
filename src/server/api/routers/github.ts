@@ -3,10 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import {
   COLLECTIONS,
-  generateId,
-  nowISO,
   type Account,
-  type LinkedRepo,
 } from "~/server/db";
 
 // GitHub API response types
@@ -45,6 +42,7 @@ export const githubRouter = createTRPCRouter({
   }),
 
   // List all repos the user has access to (including private)
+  // Repo linking is now done directly in namespace router (namespace.addRepo)
   listRepos: protectedProcedure
     .input(
       z.object({
@@ -97,13 +95,6 @@ export const githubRouter = createTRPCRouter({
 
       const repos = (await response.json()) as GitHubRepo[];
 
-      // Get already linked repos to mark them
-      const linkedRepos = await ctx.db.findMany<LinkedRepo>(
-        COLLECTIONS.linkedRepos,
-        { userId: ctx.session.user.id }
-      );
-      const linkedRepoIds = new Set(linkedRepos.map((r) => r.repoId));
-
       return repos.map((repo) => ({
         id: repo.id,
         name: repo.name,
@@ -116,103 +107,7 @@ export const githubRouter = createTRPCRouter({
         language: repo.language,
         stargazersCount: repo.stargazers_count,
         forksCount: repo.forks_count,
-        isLinked: linkedRepoIds.has(repo.id),
       }));
-    }),
-
-  // Get linked repos for the current user
-  listLinked: protectedProcedure.query(async ({ ctx }) => {
-    const repos = await ctx.db.findMany<LinkedRepo>(
-      COLLECTIONS.linkedRepos,
-      { userId: ctx.session.user.id },
-      { sort: { field: "createdAt", order: "desc" } }
-    );
-
-    return repos;
-  }),
-
-  // Link a repository to the user's profile
-  link: protectedProcedure
-    .input(
-      z.object({
-        repoId: z.number(),
-        fullName: z.string(),
-        name: z.string(),
-        owner: z.string(),
-        description: z.string().nullable(),
-        isPrivate: z.boolean(),
-        htmlUrl: z.string().url(),
-        defaultBranch: z.string(),
-        language: z.string().nullable(),
-        stargazersCount: z.number(),
-        forksCount: z.number(),
-      })
-    )
-    .mutation(async ({ ctx, input }) => {
-      // Check if already linked
-      const existing = await ctx.db.findMany<LinkedRepo>(
-        COLLECTIONS.linkedRepos,
-        { userId: ctx.session.user.id, repoId: input.repoId },
-        { limit: 1 }
-      );
-
-      if (existing.length > 0) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "Repository is already linked",
-        });
-      }
-
-      const now = nowISO();
-      const linkedRepo: LinkedRepo = {
-        id: generateId(),
-        userId: ctx.session.user.id,
-        repoId: input.repoId,
-        fullName: input.fullName,
-        name: input.name,
-        owner: input.owner,
-        description: input.description,
-        isPrivate: input.isPrivate,
-        htmlUrl: input.htmlUrl,
-        defaultBranch: input.defaultBranch,
-        language: input.language,
-        stargazersCount: input.stargazersCount,
-        forksCount: input.forksCount,
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      await ctx.db.createDocument(COLLECTIONS.linkedRepos, linkedRepo);
-
-      return linkedRepo;
-    }),
-
-  // Unlink a repository
-  unlink: protectedProcedure
-    .input(z.object({ id: z.string() }))
-    .mutation(async ({ ctx, input }) => {
-      const repo = await ctx.db.findUnique<LinkedRepo>(
-        COLLECTIONS.linkedRepos,
-        { id: input.id }
-      );
-
-      if (!repo) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Linked repository not found",
-        });
-      }
-
-      if (repo.userId !== ctx.session.user.id) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "You don't have permission to unlink this repository",
-        });
-      }
-
-      await ctx.db.deleteDocument(COLLECTIONS.linkedRepos, { id: input.id });
-
-      return { success: true };
     }),
 
   // Get repo contents (for viewing what they're building)

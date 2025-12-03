@@ -120,9 +120,9 @@ export async function getFeegrantAllowance(
     }
 
     const data = (await response.json()) as FeegrantAllowanceResponse;
-    const allowance = data.allowance?.allowance;
+    const outerAllowance = data.allowance?.allowance;
 
-    if (!allowance) {
+    if (!outerAllowance) {
       return null;
     }
 
@@ -130,18 +130,25 @@ export async function getFeegrantAllowance(
     let spendLimit: Array<{ denom: string; amount: string }> | undefined;
     let expiration: string | null = null;
 
-    if (allowance["@type"] === "/cosmos.feegrant.v1beta1.AllowedMsgAllowance") {
-      // Nested allowance structure
-      spendLimit = allowance.allowance?.spend_limit;
-      expiration = allowance.allowance?.expiration ?? null;
-    } else {
+    if (outerAllowance["@type"] === "/cosmos.feegrant.v1beta1.AllowedMsgAllowance") {
+      // AllowedMsgAllowance wraps another allowance (usually BasicAllowance)
+      const innerAllowance = outerAllowance.allowance;
+      spendLimit = innerAllowance?.spend_limit;
+      expiration = innerAllowance?.expiration ?? null;
+    } else if (outerAllowance["@type"] === "/cosmos.feegrant.v1beta1.BasicAllowance") {
       // Direct BasicAllowance
-      spendLimit = allowance.spend_limit;
-      expiration = allowance.expiration ?? null;
+      spendLimit = outerAllowance.spend_limit;
+      expiration = outerAllowance.expiration ?? null;
+    } else {
+      // Unknown allowance type, try to extract spend_limit anyway
+      spendLimit = outerAllowance.spend_limit ?? outerAllowance.allowance?.spend_limit;
+      expiration = outerAllowance.expiration ?? outerAllowance.allowance?.expiration ?? null;
     }
 
     // Find utia amount
     const utiaAllowance = spendLimit?.find((coin) => coin.denom === "utia");
+
+    console.log(`[Celestia] Feegrant for ${grantee}: type=${outerAllowance["@type"]}, remaining=${utiaAllowance?.amount ?? "0"} utia`);
 
     return {
       remaining: utiaAllowance?.amount ?? "0",

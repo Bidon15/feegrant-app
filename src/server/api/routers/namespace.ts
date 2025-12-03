@@ -7,7 +7,7 @@ import {
   nowISO,
   type Namespace,
   type User,
-  type LinkedRepo,
+  type NamespaceRepo,
 } from "~/server/db";
 import { createHash } from "crypto";
 import {
@@ -202,7 +202,6 @@ export const namespaceRouter = createTRPCRouter({
         totalBytes: 0,
         lastActivityAt: null,
         isActive: true,
-        linkedRepoId: null,
         createdAt: now,
         updatedAt: now,
       };
@@ -453,12 +452,22 @@ export const namespaceRouter = createTRPCRouter({
       return updated;
     }),
 
-  // Link a namespace to a GitHub repo
-  linkToRepo: protectedProcedure
+  // Add a repo to a namespace (many-to-many via namespace_repos)
+  addRepo: protectedProcedure
     .input(
       z.object({
         namespaceId: z.string(),
-        linkedRepoId: z.string(),
+        // GitHub repo info
+        repoId: z.number(),
+        fullName: z.string(),
+        name: z.string(),
+        owner: z.string(),
+        description: z.string().nullable(),
+        isPrivate: z.boolean(),
+        htmlUrl: z.string(),
+        language: z.string().nullable(),
+        stargazersCount: z.number(),
+        forksCount: z.number(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -478,44 +487,57 @@ export const namespaceRouter = createTRPCRouter({
       if (namespace.userId !== ctx.session.user.id) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "You don't have permission to link this namespace",
+          message: "You don't have permission to modify this namespace",
         });
       }
 
-      // Verify the linked repo exists and user owns it
-      const repo = await ctx.db.findUnique<LinkedRepo>(
-        COLLECTIONS.linkedRepos,
-        { id: input.linkedRepoId }
+      // Check if this repo is already linked to this namespace
+      const existing = await ctx.db.findMany<NamespaceRepo>(
+        COLLECTIONS.namespaceRepos,
+        { namespaceId: input.namespaceId, repoId: input.repoId },
+        { limit: 1 }
       );
 
-      if (!repo) {
+      if (existing.length > 0) {
         throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Linked repository not found",
+          code: "CONFLICT",
+          message: "This repo is already linked to this namespace",
         });
       }
 
-      if (repo.userId !== ctx.session.user.id) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "You don't have permission to use this repository",
-        });
-      }
+      // Create the namespace-repo link
+      const namespaceRepo: NamespaceRepo = {
+        id: generateId(),
+        namespaceId: input.namespaceId,
+        userId: ctx.session.user.id,
+        repoId: input.repoId,
+        fullName: input.fullName,
+        name: input.name,
+        owner: input.owner,
+        description: input.description,
+        isPrivate: input.isPrivate,
+        htmlUrl: input.htmlUrl,
+        language: input.language,
+        stargazersCount: input.stargazersCount,
+        forksCount: input.forksCount,
+        createdAt: nowISO(),
+      };
 
-      // Update the namespace with the linked repo
-      const updated = await ctx.db.updateDocument<Namespace>(
-        COLLECTIONS.namespaces,
-        { id: input.namespaceId },
-        { linkedRepoId: input.linkedRepoId }
-      );
+      await ctx.db.createDocument(COLLECTIONS.namespaceRepos, namespaceRepo);
 
-      return updated;
+      return namespaceRepo;
     }),
 
-  // Unlink a namespace from its repo
-  unlinkFromRepo: protectedProcedure
-    .input(z.object({ namespaceId: z.string() }))
+  // Remove a repo from a namespace
+  removeRepo: protectedProcedure
+    .input(
+      z.object({
+        namespaceId: z.string(),
+        repoId: z.number(),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
+      // Verify namespace exists and user owns it
       const namespace = await ctx.db.findUnique<Namespace>(
         COLLECTIONS.namespaces,
         { id: input.namespaceId }
@@ -531,20 +553,61 @@ export const namespaceRouter = createTRPCRouter({
       if (namespace.userId !== ctx.session.user.id) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "You don't have permission to unlink this namespace",
+          message: "You don't have permission to modify this namespace",
         });
       }
 
-      const updated = await ctx.db.updateDocument<Namespace>(
-        COLLECTIONS.namespaces,
-        { id: input.namespaceId },
-        { linkedRepoId: null }
+      // Find the link to delete
+      const links = await ctx.db.findMany<NamespaceRepo>(
+        COLLECTIONS.namespaceRepos,
+        { namespaceId: input.namespaceId, repoId: input.repoId },
+        { limit: 1 }
       );
 
-      return updated;
+      if (links.length === 0) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Repo link not found",
+        });
+      }
+
+      await ctx.db.deleteDocument(COLLECTIONS.namespaceRepos, { id: links[0]!.id });
+
+      return { success: true };
     }),
 
-  // Get detailed activity for a namespace (blobs + linked repo)
+  // Get repos linked to a namespace
+  getRepos: protectedProcedure
+    .input(z.object({ namespaceId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const namespace = await ctx.db.findUnique<Namespace>(
+        COLLECTIONS.namespaces,
+        { id: input.namespaceId }
+      );
+
+      if (!namespace) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Namespace not found",
+        });
+      }
+
+      if (namespace.userId !== ctx.session.user.id) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You don't have access to this namespace",
+        });
+      }
+
+      const repos = await ctx.db.findMany<NamespaceRepo>(
+        COLLECTIONS.namespaceRepos,
+        { namespaceId: input.namespaceId }
+      );
+
+      return repos;
+    }),
+
+  // Get detailed activity for a namespace (blobs + linked repos)
   getActivity: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
@@ -567,14 +630,11 @@ export const namespaceRouter = createTRPCRouter({
         });
       }
 
-      // Get linked repo if any
-      let linkedRepo: LinkedRepo | null = null;
-      if (namespace.linkedRepoId) {
-        linkedRepo = await ctx.db.findUnique<LinkedRepo>(
-          COLLECTIONS.linkedRepos,
-          { id: namespace.linkedRepoId }
-        );
-      }
+      // Get linked repos from junction table
+      const linkedRepos = await ctx.db.findMany<NamespaceRepo>(
+        COLLECTIONS.namespaceRepos,
+        { namespaceId: namespace.id }
+      );
 
       // Get blob activity from Celenium
       const [celeniumNs, stats, recentBlobs] = await Promise.all([
@@ -591,13 +651,13 @@ export const namespaceRouter = createTRPCRouter({
           totalBytes: celeniumNs?.size ?? stats?.size ?? namespace.totalBytes,
           lastActivityAt: celeniumNs?.last_message_time ?? namespace.lastActivityAt,
         },
-        linkedRepo: linkedRepo ? {
-          id: linkedRepo.id,
-          fullName: linkedRepo.fullName,
-          htmlUrl: linkedRepo.htmlUrl,
-          language: linkedRepo.language,
-          isPrivate: linkedRepo.isPrivate,
-        } : null,
+        linkedRepos: linkedRepos.map((repo) => ({
+          repoId: repo.repoId,
+          fullName: repo.fullName,
+          htmlUrl: repo.htmlUrl,
+          language: repo.language,
+          isPrivate: repo.isPrivate,
+        })),
         stats: stats ? {
           size: stats.size,
           blobsCount: stats.blobs_count,
@@ -625,19 +685,26 @@ export const namespaceRouter = createTRPCRouter({
       { sort: { field: "createdAt", order: "desc" } }
     );
 
-    // Get linked repos
-    const linkedRepos = await ctx.db.findMany<LinkedRepo>(
-      COLLECTIONS.linkedRepos,
+    // Get all namespace-repo links for this user
+    const allNamespaceRepos = await ctx.db.findMany<NamespaceRepo>(
+      COLLECTIONS.namespaceRepos,
       { userId: ctx.session.user.id }
     );
-    const repoMap = new Map(linkedRepos.map((r) => [r.id, r]));
+
+    // Group repos by namespace ID
+    const reposByNamespace = new Map<string, NamespaceRepo[]>();
+    for (const repo of allNamespaceRepos) {
+      const existing = reposByNamespace.get(repo.namespaceId) ?? [];
+      existing.push(repo);
+      reposByNamespace.set(repo.namespaceId, existing);
+    }
 
     // Enrich namespaces with activity data from Celenium
     const enriched = await Promise.all(
       namespaces.map(async (ns) => {
         // Get stats from Celenium - this is the source of truth for on-chain activity
         const stats = await getNamespaceStats(ns.namespaceId);
-        const linkedRepo = ns.linkedRepoId ? repoMap.get(ns.linkedRepoId) : null;
+        const linkedRepos = reposByNamespace.get(ns.id) ?? [];
 
         // hasOnChainActivity = true if Celenium has data for this namespace
         // (meaning at least one blob has been submitted)
@@ -652,13 +719,14 @@ export const namespaceRouter = createTRPCRouter({
           totalFees: stats?.fee ?? "0",
           // Flag to indicate if namespace has real on-chain activity
           hasOnChainActivity,
-          linkedRepo: linkedRepo ? {
-            id: linkedRepo.id,
-            fullName: linkedRepo.fullName,
-            htmlUrl: linkedRepo.htmlUrl,
-            language: linkedRepo.language,
-            isPrivate: linkedRepo.isPrivate,
-          } : null,
+          // Array of linked repos (many-to-many)
+          linkedRepos: linkedRepos.map((repo) => ({
+            repoId: repo.repoId,
+            fullName: repo.fullName,
+            htmlUrl: repo.htmlUrl,
+            language: repo.language,
+            isPrivate: repo.isPrivate,
+          })),
         };
       })
     );
