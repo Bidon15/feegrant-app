@@ -706,11 +706,15 @@ export const namespaceRouter = createTRPCRouter({
       { sort: { field: "createdAt", order: "desc" } }
     );
 
+    console.log("[Namespace] listWithActivity - Found namespaces:", namespaces.length, namespaces.map(ns => ({ id: ns.id, name: ns.name })));
+
     // Get all namespace-repo links for this user
     const allNamespaceRepos = await ctx.db.findMany<NamespaceRepo>(
       COLLECTIONS.namespaceRepos,
       { userId: ctx.session.user.id }
     );
+
+    console.log("[Namespace] listWithActivity - Found namespace repos:", allNamespaceRepos.length, allNamespaceRepos.map(r => ({ namespaceId: r.namespaceId, repoId: r.repoId, fullName: r.fullName })));
 
     // Group repos by namespace ID
     const reposByNamespace = new Map<string, NamespaceRepo[]>();
@@ -719,6 +723,8 @@ export const namespaceRouter = createTRPCRouter({
       existing.push(repo);
       reposByNamespace.set(repo.namespaceId, existing);
     }
+
+    console.log("[Namespace] listWithActivity - Repos grouped by namespace:", Array.from(reposByNamespace.entries()).map(([nsId, repos]) => ({ nsId, repoCount: repos.length })));
 
     // Enrich namespaces with activity data from Celenium
     const enriched = await Promise.all(
