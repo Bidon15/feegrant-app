@@ -149,54 +149,77 @@ export default function AdminPage() {
 
   // Handle authz grant
   const handleGrantAuthz = async () => {
-    if (!keplrAddress || !window.keplr || !backendData?.backendAddress) return;
+    if (!keplrAddress || !window.keplr || !backendData?.backendAddress) {
+      console.error("[Authz] Missing required data:", { keplrAddress, hasKeplr: !!window.keplr, backendAddress: backendData?.backendAddress });
+      return;
+    }
     setIsGrantingAuthz(true);
+    setConnectionError(null);
 
     try {
-      const offlineSigner = window.keplr.getOfflineSigner(CELESTIA_MOCHA_CHAIN_ID);
+      console.log("[Authz] Starting authz grant flow...");
+
+      // Get offline signer (must await getOfflineSignerAuto for proper async handling)
+      const offlineSigner = await window.keplr.getOfflineSignerAuto(CELESTIA_MOCHA_CHAIN_ID);
+      console.log("[Authz] Got offline signer");
+
       const { SigningStargateClient } = await import("@cosmjs/stargate");
       const { Registry } = await import("@cosmjs/proto-signing");
       const { MsgGrant } = await import("cosmjs-types/cosmos/authz/v1beta1/tx");
       const { GenericAuthorization } = await import("cosmjs-types/cosmos/authz/v1beta1/authz");
-      const { Timestamp } = await import("cosmjs-types/google/protobuf/timestamp");
+      const { Any } = await import("cosmjs-types/google/protobuf/any");
 
       // Create client with authz registry
       const registry = new Registry();
       registry.register("/cosmos.authz.v1beta1.MsgGrant", MsgGrant as Parameters<typeof registry.register>[1]);
+      registry.register("/cosmos.authz.v1beta1.GenericAuthorization", GenericAuthorization as Parameters<typeof registry.register>[1]);
 
+      console.log("[Authz] Connecting to RPC...");
       const client = await SigningStargateClient.connectWithSigner(
         "https://rpc-mocha.pops.one",
         offlineSigner,
         { registry }
       );
+      console.log("[Authz] Connected to RPC");
 
       // Calculate expiration (1 year from now)
       const expirationDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
-      const expirationTimestamp = Timestamp.fromPartial({
-        seconds: BigInt(Math.floor(expirationDate.getTime() / 1000)),
-        nanos: 0,
+      // Convert to seconds since epoch for protobuf Timestamp
+      const expirationSeconds = BigInt(Math.floor(expirationDate.getTime() / 1000));
+
+      // Create the GenericAuthorization
+      const genericAuth = GenericAuthorization.fromPartial({
+        msg: "/cosmos.feegrant.v1beta1.MsgGrantAllowance",
       });
 
-      // Create the MsgGrant for GenericAuthorization
+      // Create the MsgGrant with properly encoded authorization
       const msgGrant = {
         granter: keplrAddress,
         grantee: backendData.backendAddress,
         grant: {
-          authorization: {
+          authorization: Any.fromPartial({
             typeUrl: "/cosmos.authz.v1beta1.GenericAuthorization",
-            value: GenericAuthorization.encode({
-              msg: "/cosmos.feegrant.v1beta1.MsgGrantAllowance",
-            }).finish(),
+            value: GenericAuthorization.encode(genericAuth).finish(),
+          }),
+          expiration: {
+            seconds: expirationSeconds,
+            nanos: 0,
           },
-          expiration: expirationTimestamp,
         },
       };
+
+      console.log("[Authz] MsgGrant prepared:", {
+        granter: msgGrant.granter,
+        grantee: msgGrant.grantee,
+        expiration: expirationDate.toISOString(),
+      });
 
       const fee = {
         amount: [{ denom: "utia", amount: "10000" }],
         gas: "200000",
       };
 
+      console.log("[Authz] Broadcasting transaction...");
       const result = await client.signAndBroadcast(
         keplrAddress,
         [
@@ -209,6 +232,8 @@ export default function AdminPage() {
         `Grant authz to ${backendData.backendAddress} for feegrant management`
       );
 
+      console.log("[Authz] Broadcast result:", { code: result.code, txHash: result.transactionHash });
+
       if (result.code !== 0) {
         throw new Error(`Transaction failed: ${result.rawLog}`);
       }
@@ -219,8 +244,10 @@ export default function AdminPage() {
         txHash: result.transactionHash,
         expiresAt: expirationDate.toISOString(),
       });
+
+      console.log("[Authz] Authz grant recorded successfully");
     } catch (error) {
-      console.error("Failed to grant authz:", error);
+      console.error("[Authz] Failed to grant authz:", error);
       setConnectionError(error instanceof Error ? error.message : "Failed to grant authz");
     } finally {
       setIsGrantingAuthz(false);
