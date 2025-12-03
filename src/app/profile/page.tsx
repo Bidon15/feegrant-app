@@ -26,7 +26,8 @@ import {
   Box,
   Copy,
   Check,
-  Trash2,
+  Archive,
+  ArchiveRestore,
   X,
   FolderGit2,
 } from "lucide-react";
@@ -45,8 +46,10 @@ export default function ProfilePage() {
   const [pendingRepoAdd, setPendingRepoAdd] = useState<string | null>(null);
   // Track which specific repo is being removed (namespaceId:repoId)
   const [pendingRepoRemove, setPendingRepoRemove] = useState<string | null>(null);
-  // Track which namespace is being deleted
-  const [pendingNamespaceDelete, setPendingNamespaceDelete] = useState<string | null>(null);
+  // Track which namespace is being archived/restored
+  const [pendingNamespaceArchive, setPendingNamespaceArchive] = useState<string | null>(null);
+  // Tab state for namespaces (active vs archived)
+  const [namespaceTab, setNamespaceTab] = useState<"active" | "archived">("active");
 
   // Fetch real user data from tRPC
   const { data: myStats, isLoading, refetch } = api.stats.myStats.useQuery();
@@ -80,24 +83,27 @@ export default function ProfilePage() {
   });
 
   const utils = api.useUtils();
-  const deleteNamespace = api.namespace.delete.useMutation({
+
+  // Archive/restore namespace mutation
+  const archiveNamespace = api.namespace.update.useMutation({
     onMutate: async ({ id }) => {
-      setPendingNamespaceDelete(id);
+      setPendingNamespaceArchive(id);
       await utils.namespace.listWithActivity.cancel();
       const previousNamespaces = utils.namespace.listWithActivity.getData();
+      // Optimistically update the isActive status
       utils.namespace.listWithActivity.setData(undefined, (old) =>
-        old?.filter((ns) => ns.id !== id)
+        old?.map((ns) => ns.id === id ? { ...ns, isActive: !ns.isActive } : ns)
       );
       return { previousNamespaces };
     },
     onError: (error, _variables, context) => {
-      console.error("[Profile] Failed to delete namespace:", error);
+      console.error("[Profile] Failed to archive/restore namespace:", error);
       if (context?.previousNamespaces) {
         utils.namespace.listWithActivity.setData(undefined, context.previousNamespaces);
       }
     },
     onSettled: () => {
-      setPendingNamespaceDelete(null);
+      setPendingNamespaceArchive(null);
       void utils.namespace.listWithActivity.invalidate();
     },
   });
@@ -577,62 +583,108 @@ export default function ProfilePage() {
               </div>
             )}
 
+            {/* Tabs for Active/Archived */}
+            {namespaces && namespaces.length > 0 && (() => {
+              // Deduplicate namespaces by namespaceId (keep the first/latest one)
+              const uniqueNamespaces = Array.from(
+                new Map(namespaces.map(ns => [ns.namespaceId, ns])).values()
+              );
+              const activeNamespaces = uniqueNamespaces.filter(ns => ns.isActive);
+              const archivedNamespaces = uniqueNamespaces.filter(ns => !ns.isActive);
+
+              return (
+                <div className="flex gap-2 mb-4">
+                  <Button
+                    variant={namespaceTab === "active" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setNamespaceTab("active")}
+                    className="font-mono text-xs"
+                  >
+                    Active ({activeNamespaces.length})
+                  </Button>
+                  <Button
+                    variant={namespaceTab === "archived" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setNamespaceTab("archived")}
+                    className="font-mono text-xs"
+                  >
+                    <Archive className="w-3 h-3 mr-1" />
+                    Archived ({archivedNamespaces.length})
+                  </Button>
+                </div>
+              );
+            })()}
+
             {/* Namespace list */}
             {namespaces && namespaces.length > 0 ? (() => {
               // Deduplicate namespaces by namespaceId (keep the first/latest one)
               const uniqueNamespaces = Array.from(
                 new Map(namespaces.map(ns => [ns.namespaceId, ns])).values()
               );
+              // Filter by tab
+              const filteredNamespaces = uniqueNamespaces.filter(ns =>
+                namespaceTab === "active" ? ns.isActive : !ns.isActive
+              );
+
+              if (filteredNamespaces.length === 0) {
+                return (
+                  <div className="text-center py-8 text-muted-foreground">
+                    {namespaceTab === "active" ? (
+                      <>
+                        <Box className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                        <p>No active namespaces</p>
+                        <p className="text-xs mt-1">Create one to start organizing your blobs</p>
+                      </>
+                    ) : (
+                      <>
+                        <Archive className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                        <p>No archived namespaces</p>
+                        <p className="text-xs mt-1">Archived namespaces will appear here</p>
+                      </>
+                    )}
+                  </div>
+                );
+              }
+
               return (
               <div className="space-y-3">
-                {uniqueNamespaces.map((ns) => {
+                {filteredNamespaces.map((ns) => {
                   const linkedReposList = ns.linkedRepos ?? [];
                   const isAddingRepo = addingRepoToNamespace === ns.id;
                   // Filter out repos already linked to this namespace
                   const alreadyLinkedRepoIds = new Set(linkedReposList.map(r => r.repoId));
                   const reposToShow = availableRepos?.filter(r => !alreadyLinkedRepoIds.has(r.id)) ?? [];
+                  const isArchiving = pendingNamespaceArchive === ns.id;
 
                   return (
                     <div
                       key={ns.id}
-                      className="p-4 rounded-lg bg-muted/20 border border-border/50 hover:bg-muted/30 transition-colors"
+                      className={`p-4 rounded-lg border border-border/50 transition-colors ${
+                        ns.isActive
+                          ? "bg-muted/20 hover:bg-muted/30"
+                          : "bg-muted/10 opacity-75"
+                      }`}
                     >
+                      {/* Header row with name */}
                       <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono font-medium">{ns.name}</span>
-                          <Badge variant={ns.isActive ? "default" : "secondary"} className="text-xs">
-                            {ns.isActive ? "Active" : "Inactive"}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => copyToClipboard(ns.id, ns.namespaceId)}
-                            title="Copy namespace ID"
-                            className="h-8 px-2"
-                          >
-                            {copiedId === ns.id ? (
-                              <Check className="w-4 h-4 text-primary" />
-                            ) : (
-                              <Copy className="w-4 h-4" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => deleteNamespace.mutate({ id: ns.id })}
-                            disabled={pendingNamespaceDelete === ns.id || deleteNamespace.isPending}
-                            className="text-destructive hover:text-destructive h-8 px-2"
-                            title="Delete namespace"
-                          >
-                            {pendingNamespaceDelete === ns.id ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Trash2 className="w-4 h-4" />
-                            )}
-                          </Button>
-                        </div>
+                        <span className="font-mono font-medium">{ns.name}</span>
+                        {/* Archive/Restore button - separated from copy */}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => archiveNamespace.mutate({ id: ns.id, isActive: !ns.isActive })}
+                          disabled={isArchiving || archiveNamespace.isPending}
+                          className={`h-8 px-2 ${ns.isActive ? "text-muted-foreground hover:text-foreground" : "text-primary hover:text-primary"}`}
+                          title={ns.isActive ? "Archive namespace" : "Restore namespace"}
+                        >
+                          {isArchiving ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : ns.isActive ? (
+                            <Archive className="w-4 h-4" />
+                          ) : (
+                            <ArchiveRestore className="w-4 h-4" />
+                          )}
+                        </Button>
                       </div>
 
                       {/* Blob Stats Row */}
@@ -653,11 +705,25 @@ export default function ProfilePage() {
                         )}
                       </div>
 
+                      {/* Namespace ID row with copy button */}
                       <div className="flex items-center gap-2 text-xs">
                         <span className="text-muted-foreground">Namespace ID:</span>
                         <code className="font-mono bg-muted/50 px-2 py-1 rounded text-primary break-all">
                           {ns.namespaceId}
                         </code>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyToClipboard(ns.id, ns.namespaceId)}
+                          title="Copy namespace ID"
+                          className="h-6 px-1.5"
+                        >
+                          {copiedId === ns.id ? (
+                            <Check className="w-3 h-3 text-primary" />
+                          ) : (
+                            <Copy className="w-3 h-3" />
+                          )}
+                        </Button>
                         {copiedId === ns.id && (
                           <span className="text-primary text-xs">Copied!</span>
                         )}

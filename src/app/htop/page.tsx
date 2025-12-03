@@ -10,14 +10,15 @@ import {
   Users,
   Clock,
   Wallet,
-  CheckCircle2,
-  XCircle,
   Loader2,
   RefreshCw,
   Coins,
   TrendingUp,
   Box,
   Database,
+  Github,
+  ExternalLink,
+  FolderGit2,
 } from "lucide-react";
 import { truncateAddress } from "~/lib/formatting";
 
@@ -150,13 +151,13 @@ export default function HtopPage() {
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-[hsl(15_85%_55%)]/10">
-                  <Coins className="w-5 h-5 text-[hsl(15_85%_55%)]" />
+                  <Box className="w-5 h-5 text-[hsl(15_85%_55%)]" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold font-mono">
-                    {networkStats?.users.dusted ?? 0}
+                    {networkStats?.namespaces ?? 0}
                   </p>
-                  <p className="text-xs text-muted-foreground">Dusted Wallets</p>
+                  <p className="text-xs text-muted-foreground">Namespaces</p>
                 </div>
               </div>
             </CardContent>
@@ -271,13 +272,13 @@ export default function HtopPage() {
           </Card>
         )}
 
-        {/* User Leaderboard */}
+        {/* Namespace Activity Leaderboard */}
         <Card className="glass-strong mb-8">
           <CardHeader className="pb-2">
             <CardTitle className="font-mono text-sm flex items-center gap-2">
-              <Users className="w-4 h-4 text-accent" />
+              <Activity className="w-4 h-4 text-accent" />
               <span className="text-accent">LEADERBOARD</span>
-              <span className="text-muted-foreground"> - wallet balances</span>
+              <span className="text-muted-foreground"> - namespace activity</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -288,12 +289,13 @@ export default function HtopPage() {
             ) : leaderboard && leaderboard.length > 0 ? (
               <>
                 {/* Table Header */}
-                <div className="grid grid-cols-6 gap-4 py-2 border-b border-border font-mono text-xs text-muted-foreground uppercase">
+                <div className="grid grid-cols-12 gap-4 py-2 border-b border-border font-mono text-xs text-muted-foreground uppercase">
                   <div>Rank</div>
                   <div className="col-span-2">User</div>
-                  <div>Wallet</div>
-                  <div className="text-center">Status</div>
-                  <div className="text-right">Balance</div>
+                  <div className="col-span-3">Namespace</div>
+                  <div className="col-span-3">Linked Repos</div>
+                  <div className="text-center">Blobs</div>
+                  <div className="text-right col-span-2">Data</div>
                 </div>
 
                 {/* Table Rows */}
@@ -301,7 +303,7 @@ export default function HtopPage() {
                   {leaderboard.map((entry, index) => (
                     <div
                       key={entry.id}
-                      className="grid grid-cols-6 gap-4 py-3 items-center hover:bg-muted/20 transition-colors"
+                      className="grid grid-cols-12 gap-4 py-3 items-center hover:bg-muted/20 transition-colors"
                     >
                       {/* Rank */}
                       <div className="font-mono text-lg font-bold">
@@ -330,35 +332,62 @@ export default function HtopPage() {
                           className="w-6 h-6 rounded-full"
                           unoptimized
                         />
-                        <span className="font-mono text-sm">@{entry.username}</span>
+                        <span className="font-mono text-sm truncate">@{entry.username}</span>
                       </div>
 
-                      {/* Wallet */}
-                      <div className="font-mono text-xs text-muted-foreground">
-                        {truncateAddress(entry.walletAddress)}
+                      {/* Namespace */}
+                      <div className="col-span-3">
+                        <a
+                          href={`https://mocha.celenium.io/namespace/${entry.namespaceId.padStart(56, "0")}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-mono text-xs text-primary hover:underline flex items-center gap-1"
+                        >
+                          {entry.namespaceName}
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
                       </div>
 
-                      {/* Status */}
-                      <div className="flex items-center justify-center gap-1">
-                        <span title="Dusted">
-                          {entry.isDusted ? (
-                            <CheckCircle2 className="w-4 h-4 text-primary" />
-                          ) : (
-                            <XCircle className="w-4 h-4 text-muted-foreground" />
-                          )}
-                        </span>
-                        <span title="Fee granted">
-                          {entry.hasFeeGrant ? (
-                            <CheckCircle2 className="w-4 h-4 text-accent" />
-                          ) : (
-                            <XCircle className="w-4 h-4 text-muted-foreground" />
-                          )}
-                        </span>
+                      {/* Linked Repos */}
+                      <div className="col-span-3">
+                        {entry.linkedRepos.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {entry.linkedRepos.slice(0, 2).map((repo) => (
+                              <a
+                                key={repo.fullName}
+                                href={repo.htmlUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-xs bg-muted/30 px-2 py-0.5 rounded hover:bg-muted/50 transition-colors"
+                              >
+                                <Github className="w-3 h-3" />
+                                <span className="truncate max-w-[80px]">{repo.fullName.split("/")[1]}</span>
+                              </a>
+                            ))}
+                            {entry.linkedRepos.length > 2 && (
+                              <span className="text-xs text-muted-foreground">
+                                +{entry.linkedRepos.length - 2}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
                       </div>
 
-                      {/* Balance */}
-                      <div className="text-right font-mono text-sm font-bold text-primary">
-                        {entry.balance}
+                      {/* Blob Count */}
+                      <div className="text-center">
+                        <Badge
+                          variant={entry.blobCount > 0 ? "default" : "secondary"}
+                          className="font-mono"
+                        >
+                          {entry.blobCount}
+                        </Badge>
+                      </div>
+
+                      {/* Data Size */}
+                      <div className="text-right col-span-2 font-mono text-sm text-muted-foreground">
+                        {entry.totalBytesFormatted}
                       </div>
                     </div>
                   ))}
@@ -366,9 +395,9 @@ export default function HtopPage() {
               </>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
-                <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No users with wallets yet</p>
-                <p className="text-xs mt-1">Be the first to connect!</p>
+                <Box className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No namespaces yet</p>
+                <p className="text-xs mt-1">Create one to start submitting blobs!</p>
               </div>
             )}
           </CardContent>

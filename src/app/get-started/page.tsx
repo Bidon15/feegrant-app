@@ -17,13 +17,13 @@ import {
   FileCode,
   Key,
   Loader2,
-  CheckCircle2,
-  XCircle,
   Terminal,
   ExternalLink,
+  Box,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { api } from "~/trpc/react";
-import { truncateAddress } from "~/lib/formatting";
 import { Button } from "~/components/ui/button";
 
 const envExample = `# .env - Your Celestia configuration
@@ -459,7 +459,7 @@ export default function GetStartedPage() {
                   <Badge variant="secondary">
                     {isLoading
                       ? "..."
-                      : `${leaderboard?.length ?? 0} developers`}
+                      : `${leaderboard?.length ?? 0} namespaces`}
                   </Badge>
                 </div>
                 <CardDescription>
@@ -473,43 +473,39 @@ export default function GetStartedPage() {
                   </div>
                 ) : leaderboard && leaderboard.length > 0 ? (
                   <div className="space-y-3">
-                    {leaderboard.map((user) => (
+                    {leaderboard.slice(0, 5).map((entry) => (
                       <div
-                        key={user.id}
+                        key={entry.id}
                         className="bg-muted/20 border-border/50 hover:bg-muted/30 flex items-center justify-between rounded-lg border p-4 transition-colors"
                       >
                         <div className="flex items-center gap-3">
                           <Image
-                            src={user.avatar}
-                            alt={user.username}
+                            src={entry.avatar}
+                            alt={entry.username}
                             width={40}
                             height={40}
                             className="border-border h-10 w-10 rounded-full border"
                             unoptimized
                           />
                           <div>
-                            <div className="font-medium">{user.username}</div>
+                            <div className="font-medium">@{entry.username}</div>
                             <div className="text-muted-foreground font-mono text-xs">
-                              {truncateAddress(user.walletAddress)}
+                              {entry.namespaceName}
                             </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-4">
                           <div className="flex items-center gap-1">
-                            {user.hasFeeGrant ? (
-                              <CheckCircle2 className="text-primary h-4 w-4" />
-                            ) : (
-                              <XCircle className="text-muted-foreground h-4 w-4" />
-                            )}
+                            <Box className="text-primary h-4 w-4" />
                             <span className="text-muted-foreground text-xs">
-                              {user.hasFeeGrant ? "Feegrant" : "Pending"}
+                              {entry.blobCount} blobs
                             </span>
                           </div>
                           <Badge
-                            variant={user.isDusted ? "default" : "secondary"}
+                            variant={entry.hasOnChainActivity ? "default" : "secondary"}
                             className="font-mono text-xs"
                           >
-                            {user.isDusted ? "Dusted" : "Not dusted"}
+                            {entry.totalBytesFormatted}
                           </Badge>
                         </div>
                       </div>

@@ -1,8 +1,8 @@
 import { createTRPCRouter, publicProcedure, protectedProcedure } from "~/server/api/trpc";
-import { COLLECTIONS, type User, type Address, type Namespace } from "~/server/db";
+import { COLLECTIONS, type User, type Address, type Namespace, type NamespaceRepo } from "~/server/db";
 import { getCelestiaClient, getBackendAddress, getFeegrantAllowance } from "~/server/celestia/client";
 import { formatTia, formatBytes } from "~/lib/formatting";
-import { getNamespaceStats } from "~/server/celenium/client";
+import { getNamespaceStats, getNamespaceBlobs } from "~/server/celenium/client";
 
 export const statsRouter = createTRPCRouter({
   // Get network-wide statistics
@@ -12,91 +12,87 @@ export const statsRouter = createTRPCRouter({
 
     // Count addresses with various states
     const totalAddresses = await ctx.db.countDocuments(COLLECTIONS.addresses, {});
-    const dustedAddresses = await ctx.db.countDocuments(COLLECTIONS.addresses, {
-      isDusted: true,
-    });
     const feegrantedAddresses = await ctx.db.countDocuments(
       COLLECTIONS.addresses,
       { hasFeeGrant: true }
     );
 
+    // Count namespaces
+    const totalNamespaces = await ctx.db.countDocuments(COLLECTIONS.namespaces, {});
+
     return {
       users: {
         total: totalUsers,
         withAddress: totalAddresses,
-        dusted: dustedAddresses,
         feegranted: feegrantedAddresses,
       },
+      namespaces: totalNamespaces,
     };
   }),
 
-  // Get leaderboard of users with addresses
+  // Get leaderboard by namespace activity (blobs submitted)
   leaderboard: publicProcedure.query(async ({ ctx }) => {
-    // Get all addresses
-    const addresses = await ctx.db.findMany<Address>(
-      COLLECTIONS.addresses,
+    // Get all namespaces
+    const namespaces = await ctx.db.findMany<Namespace>(
+      COLLECTIONS.namespaces,
       {},
-      { limit: 50, sort: { field: "createdAt", order: "desc" } }
+      { limit: 100 }
     );
 
-    // Get backend address for feegrant queries
-    const backendAddr = await getBackendAddress();
+    // Get all namespace-repo links
+    const allNamespaceRepos = await ctx.db.findMany<NamespaceRepo>(
+      COLLECTIONS.namespaceRepos,
+      {},
+      { limit: 500 }
+    );
 
-    // Get user info for each address
-    const leaderboardEntries = await Promise.all(
-      addresses.map(async (address) => {
+    // Group repos by namespace ID
+    const reposByNamespace = new Map<string, NamespaceRepo[]>();
+    for (const repo of allNamespaceRepos) {
+      const existing = reposByNamespace.get(repo.namespaceId) ?? [];
+      existing.push(repo);
+      reposByNamespace.set(repo.namespaceId, existing);
+    }
+
+    // Fetch stats for each namespace from Celenium and enrich with user data
+    const entries = await Promise.all(
+      namespaces.map(async (ns) => {
+        const stats = await getNamespaceStats(ns.namespaceId);
         const user = await ctx.db.findUnique<User>(COLLECTIONS.users, {
-          id: address.userId,
+          id: ns.userId,
         });
-
-        // Try to get on-chain balance and feegrant data
-        let balance = "0";
-        let feeAllowanceRemaining = address.feeAllowanceRemaining ?? "0";
-        let hasFeeGrant = address.hasFeeGrant;
-
-        try {
-          const [balanceResult, feegrantResult] = await Promise.all([
-            (async () => {
-              const { client } = await getCelestiaClient();
-              return client.getBalance(address.bech32, "utia");
-            })(),
-            getFeegrantAllowance(backendAddr, address.bech32),
-          ]);
-
-          balance = balanceResult.amount;
-
-          // Use real on-chain feegrant data if available
-          if (feegrantResult) {
-            feeAllowanceRemaining = feegrantResult.remaining;
-            hasFeeGrant = true;
-          } else if (address.hasFeeGrant) {
-            // Grant may have been exhausted or revoked
-            feeAllowanceRemaining = "0";
-            hasFeeGrant = false;
-          }
-        } catch {
-          // Ignore fetch errors, use database values
-        }
+        const linkedRepos = reposByNamespace.get(ns.id) ?? [];
 
         return {
-          id: address.id,
-          username: user?.name ?? user?.email?.split("@")[0] ?? "anonymous",
-          avatar: user?.image ?? `https://api.dicebear.com/7.x/identicon/svg?seed=${address.userId}`,
-          walletAddress: address.bech32,
-          isDusted: address.isDusted,
-          hasFeeGrant,
-          feeAllowanceRemaining,
-          balance: formatTia(parseInt(balance)),
-          balanceUtia: parseInt(balance),
-          joinedAt: address.createdAt,
+          id: ns.id,
+          // User info
+          userId: ns.userId,
+          username: user?.githubLogin ?? user?.name ?? "anonymous",
+          avatar: user?.image ?? `https://api.dicebear.com/7.x/identicon/svg?seed=${ns.userId}`,
+          // Namespace info
+          namespaceName: ns.name,
+          namespaceId: ns.namespaceId,
+          // Linked repos
+          linkedRepos: linkedRepos.map((r) => ({
+            fullName: r.fullName,
+            htmlUrl: r.htmlUrl,
+          })),
+          // Activity stats from Celenium
+          blobCount: stats?.blobs_count ?? 0,
+          totalBytes: stats?.size ?? 0,
+          totalBytesFormatted: formatBytes(stats?.size ?? 0),
+          // Note: fee data not available from namespace endpoint
+          hasOnChainActivity: (stats?.blobs_count ?? 0) > 0,
+          createdAt: ns.createdAt,
         };
       })
     );
 
-    // Sort by balance (descending)
-    leaderboardEntries.sort((a, b) => b.balanceUtia - a.balanceUtia);
+    // Sort by blob count (descending) - most active namespaces first
+    entries.sort((a, b) => b.blobCount - a.blobCount);
 
-    return leaderboardEntries;
+    // Return top 50
+    return entries.slice(0, 50);
   }),
 
   // Get current user's detailed stats
@@ -208,13 +204,20 @@ export const statsRouter = createTRPCRouter({
 
     const namespaceStats = await Promise.all(
       namespaces.map(async (ns) => {
+        // Get namespace stats for blob count and size
         const stats = await getNamespaceStats(ns.namespaceId);
+
+        // Get recent blobs to calculate fees (fee data is in blob transactions)
+        // Fetch up to 100 blobs to estimate total fees
+        const blobs = await getNamespaceBlobs(ns.namespaceId, { limit: 100 });
+        const feeFromBlobs = blobs.reduce((sum, blob) => sum + parseInt(blob.tx.fee || "0"), 0);
+
         return {
           namespaceId: ns.namespaceId,
           name: ns.name,
           blobsCount: stats?.blobs_count ?? 0,
           size: stats?.size ?? 0,
-          fee: parseInt(stats?.fee ?? "0"),
+          fee: feeFromBlobs,
         };
       })
     );
