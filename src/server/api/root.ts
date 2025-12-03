@@ -1,7 +1,6 @@
 import { userRouter } from "~/server/api/routers/user";
 import { walletRouter } from "~/server/api/routers/wallet";
 import { accountRouter } from "~/server/api/routers/account";
-import { adminRouter } from "~/server/api/routers/admin";
 import { statsRouter } from "~/server/api/routers/stats";
 import { namespaceRouter } from "~/server/api/routers/namespace";
 import { githubRouter } from "~/server/api/routers/github";
@@ -16,7 +15,6 @@ export const appRouter = createTRPCRouter({
   user: userRouter,
   wallet: walletRouter,
   account: accountRouter,
-  admin: adminRouter,
   stats: statsRouter,
   namespace: namespaceRouter,
   github: githubRouter,
