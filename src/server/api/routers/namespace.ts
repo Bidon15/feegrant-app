@@ -502,10 +502,21 @@ export const namespaceRouter = createTRPCRouter({
         { namespaceId: input.namespaceId }
       );
 
-      console.log("[Namespace] All links for namespace:", allLinksForNamespace.length, allLinksForNamespace.map(l => ({ id: l.id, repoId: l.repoId })));
+      // Log FULL record details to debug query mismatch
+      console.log("[Namespace] All links for namespace:", allLinksForNamespace.length, allLinksForNamespace.map(l => ({
+        id: l.id,
+        repoId: l.repoId,
+        storedNamespaceId: l.namespaceId,  // What's actually stored in the record
+        queriedNamespaceId: input.namespaceId,  // What we queried for
+        match: l.namespaceId === input.namespaceId  // Do they match?
+      })));
 
-      // Filter in-memory to check for existing link
-      const existing = allLinksForNamespace.filter(link => link.repoId === input.repoId);
+      // IMPORTANT: Filter in-memory because OnChainDB queries may return non-matching records
+      // First filter by actual namespaceId match, then by repoId
+      const actualLinksForNamespace = allLinksForNamespace.filter(link => link.namespaceId === input.namespaceId);
+      console.log("[Namespace] Actual matching links after in-memory filter:", actualLinksForNamespace.length);
+
+      const existing = actualLinksForNamespace.filter(link => link.repoId === input.repoId);
       console.log("[Namespace] Existing links for this repo:", existing.length);
 
       if (existing.length > 0) {
