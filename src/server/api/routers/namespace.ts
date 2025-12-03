@@ -470,11 +470,15 @@ export const namespaceRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      console.log("[Namespace] addRepo called with:", { namespaceId: input.namespaceId, repoId: input.repoId, fullName: input.fullName });
+
       // Verify namespace exists and user owns it
       const namespace = await ctx.db.findUnique<Namespace>(
         COLLECTIONS.namespaces,
         { id: input.namespaceId }
       );
+
+      console.log("[Namespace] Found namespace:", namespace?.id, namespace?.name);
 
       if (!namespace) {
         throw new TRPCError({
@@ -496,6 +500,8 @@ export const namespaceRouter = createTRPCRouter({
         { namespaceId: input.namespaceId, repoId: input.repoId },
         { limit: 1 }
       );
+
+      console.log("[Namespace] Existing links found:", existing.length);
 
       if (existing.length > 0) {
         throw new TRPCError({
@@ -522,7 +528,9 @@ export const namespaceRouter = createTRPCRouter({
         createdAt: nowISO(),
       };
 
+      console.log("[Namespace] Creating namespace-repo link:", namespaceRepo.id);
       await ctx.db.createDocument(COLLECTIONS.namespaceRepos, namespaceRepo);
+      console.log("[Namespace] Successfully created namespace-repo link");
 
       return namespaceRepo;
     }),
